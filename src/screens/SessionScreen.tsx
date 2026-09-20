@@ -3,9 +3,10 @@ import { useState } from 'react';
 
 import { Picker } from '../Picker';
 import { BAND_COLOR_NAMES, db, type Band, type FreeHeight, type Session } from '../db';
-import { BAND_TARGET_TOP, buildPlan, fmtDate, isoDate } from '../logic';
+import { BAND_TARGET_TOP, buildPlan, fmtDate, isoDate, parseIsoDate } from '../logic';
 
 interface Props {
+  date?: string; // when entered from the calendar for another day
   onClose: () => void;
   onSaved: () => void;
 }
@@ -16,7 +17,7 @@ const HEIGHTS: { value: FreeHeight; label: string }[] = [
   { value: 'less', label: 'weniger als halbe Höhe' },
 ];
 
-export function SessionScreen({ onClose, onSaved }: Props) {
+export function SessionScreen({ date, onClose, onSaved }: Props) {
   const data = useLiveQuery(async () => {
     const bands = (await db.bands.toArray()).sort((a, b) => a.order - b.order);
     const sessions = await db.sessions.toArray();
@@ -64,8 +65,8 @@ export function SessionScreen({ onClose, onSaved }: Props) {
     }
 
     const session: Omit<Session, 'id'> = {
-      date: isoDate(new Date()),
-      timestamp: Date.now(),
+      date: date ?? isoDate(new Date()),
+      timestamp: date ? parseIsoDate(date).getTime() : Date.now(),
       hang,
       hangSeconds: hang && num(hangSeconds) > 0 ? num(hangSeconds) : null,
       bandSets: reps.map((r) => ({ reps: num(r), bandId: chosenBand })),
@@ -93,6 +94,7 @@ export function SessionScreen({ onClose, onSaved }: Props) {
           ‹ Zurück
         </button>
         <h1 className="title">Chin-Ups eintragen</h1>
+        {date && <p className="muted">für den {fmtDate(date)}</p>}
 
         {plan.freeDue && (
           <div className="banner urgent section-sm">

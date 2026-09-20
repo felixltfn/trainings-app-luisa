@@ -1,24 +1,40 @@
 import { useLiveQuery } from 'dexie-react-hooks';
+import { useState } from 'react';
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
-import { db } from '../db';
-import { WEEKLY_GOAL, fmtDate, fmtNum, freeHeightLabel, parseIsoDate, weekStart } from '../logic';
+import { DEFAULT_BODYWEIGHT, db, getMeta } from '../db';
+import { WEEKLY_GOAL, fmtDate, fmtNum, freeHeightLabel, isoDate, parseIsoDate, weekStart } from '../logic';
 import { countInWeek, forecastFreeChinUp, weekStreak } from '../stats';
 
 const axis = { fontSize: 12, fill: 'var(--text-2)' };
 const shortDate = (iso: string) => parseIsoDate(iso).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
 const tooltipDate = (label: unknown) => (typeof label === 'string' ? shortDate(label) : '');
 
+// Time window for the charts. A single week would leave one or two points.
+const RANGES = [
+  { id: '1m', label: '1 Monat', months: 1 },
+  { id: '3m', label: '3 Monate', months: 3 },
+  { id: '1y', label: '1 Jahr', months: 12 },
+  { id: 'max', label: 'Max', months: 0 },
+] as const;
+
 export function StatsScreen() {
+  const [range, setRange] = useState<(typeof RANGES)[number]['id']>('3m');
+
   const data = useLiveQuery(async () => {
     const bands = (await db.bands.toArray()).sort((a, b) => a.order - b.order);
     const sessions = (await db.sessions.toArray()).sort((a, b) => a.timestamp - b.timestamp);
     const yoga = await db.yoga.toArray();
-    return { bands, sessions, yoga };
+    const bodyweight = (await getMeta<number>('bodyweight')) ?? DEFAULT_BODYWEIGHT;
+    return { bands, sessions, yoga, bodyweight };
   }, []);
 
   if (!data) return <div className="screen" />;
-  const { bands, sessions, yoga } = data;
+  const { bands, sessions, yoga, bodyweight } = data;
+
+  const months = RANGES.find((r) => r.id === range)?.months ?? 0;
+  const cutoff = months > 0 ? isoDate(new Date(new Date().setMonth(new Date().getMonth() - months))) : '';
+  const shown = sessions.filter((s) => s.date >= cutoff);
 
   const monday = weekStart(new Date());
   const chinWeek = countInWeek(sessions.map((s) => s.date), monday);
@@ -26,16 +42,16 @@ export function StatsScreen() {
   const chinStreak = weekStreak(sessions.map((s) => s.date));
   const yogaStreak = weekStreak(yoga.map((y) => y.date));
 
-  // One line per band: reps over time, so a band change is visible as a new line
-  const repSeries = sessions.map((s) => {
+  // One line per band, so a band change shows up as its own line
+  const repSeries = shown.map((s) => {
     const point: Record<string, number | string> = { date: s.date };
     const band = bands.find((b) => b.id === s.bandSets[0]?.bandId);
     if (band) point[band.name] = Math.min(...s.bandSets.map((x) => x.reps));
     return point;
   });
-  const holdSeries = sessions.map((s) => ({ date: s.date, sekunden: s.holdSeconds }));
+  const holdSeries = shown.map((s) => ({ date: s.date, sekunden: s.holdSeconds }));
   const attempts = sessions.filter((s) => s.free !== null).reverse();
-  const forecast = forecastFreeChinUp(sessions, bands);
+  const forecast = forecastFreeChinUp(sessions, bands, bodyweight);
 
   return (
     <div className="screen">
@@ -44,7 +60,7 @@ export function StatsScreen() {
 
       <div className="section">
         <p className="label">Diese Woche</p>
-        <div className="stats-row">
+        <div className="stats-row two">
           <div className="stat">
             <p className="label">Chin-Ups</p>
             <div className="big-num">
@@ -64,7 +80,20 @@ export function StatsScreen() {
         </div>
       </div>
 
-      {sessions.length > 0 && (
+      <div className="section">
+        <p className="label">Zeitraum der Diagramme</p>
+        <div className="segmented">
+          {RANGES.map((r) => (
+            <button key={r.id} className={range === r.id ? 'on' : ''} onClick={() => setRange(r.id)}>
+              {r.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {shown.length === 0 ? (
+        <p className="muted section">In diesem Zeitraum liegt keine Einheit. Wähle einen längeren Zeitraum.</p>
+      ) : (
         <>
           <div className="section">
             <p className="label">Wiederholungen je Band</p>
@@ -103,7 +132,14 @@ export function StatsScreen() {
                   <XAxis dataKey="date" tickFormatter={shortDate} tick={axis} tickLine={false} axisLine={false} />
                   <YAxis tick={axis} tickLine={false} axisLine={false} width={40} allowDecimals={false} />
                   <Tooltip labelFormatter={tooltipDate} />
-                  <Line type="monotone" dataKey="sekunden" name="Sekunden" stroke="var(--accent)" strokeWidth={2} dot={{ r: 3 }} />
+                  <Line
+                    type="monotone"
+                    dataKey="sekunden"
+                    name="Sekunden"
+                    stroke="var(--accent)"
+                    strokeWidth={2}
+                    dot={{ r: 3 }}
+                  />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -132,39 +168,62 @@ export function StatsScreen() {
 
       <div className="section">
         <p className="label">Erster freier Chin-Up</p>
+
+        {forecast.reason === 'done' && (
+          <p className="accent">Du hast ihn schon geschafft – ab jetzt zählt nur noch, wie oft.</p>
+        )}
+
         {forecast.reason === 'tooFewSessions' && (
           <p className="muted small">
-            Noch {forecast.sessionsNeeded} {forecast.sessionsNeeded === 1 ? 'Einheit' : 'Einheiten'}, dann zeigt die
-            App hier eine Schätzung. Vorher wäre sie reine Kaffeesatzleserei.
+            Noch {forecast.sessionsNeeded} {forecast.sessionsNeeded === 1 ? 'Einheit' : 'Einheiten'}, dann rechnet
+            die App eine Schätzung aus.
           </p>
         )}
-        {forecast.reason === 'tooShort' && (
-          <p className="muted small">
-            Die Einheiten liegen noch zu dicht beieinander. Sobald zwischen der ersten und der letzten mindestens
-            drei Wochen liegen, lässt sich ein Tempo ablesen.
-          </p>
-        )}
+
         {forecast.reason === 'noTrend' && (
           <p className="muted small">
-            In den letzten {forecast.weeks} Wochen ist der Stand gleich geblieben. Sobald es wieder aufwärts geht,
-            erscheint hier eine Schätzung.
+            Der Trend zeichnet sich noch nicht ab. Trag weiter ein, dann erscheint hier eine Schätzung.
           </p>
         )}
-        {forecast.reason === 'reached' && <p className="accent">Du bist über das dünnste Band hinaus – jetzt zählt nur noch der freie Versuch.</p>}
-        {forecast.reason === 'ok' && forecast.date && (
+
+        {forecast.reason === 'now' && (
           <>
-            <div className="big-num">{fmtDate(forecast.date)}</div>
+            <div className="big-num">jetzt</div>
             <p className="small muted">
-              So gerechnet: Jede Bandstufe zählt 6 Punkte, dazu kommen deine Wiederholungen. Im Schnitt der letzten
-              drei Einheiten stehst du bei <b>{fmtNum(forecast.score)}</b> von <b>{forecast.target}</b> Punkten und hast über{' '}
-              {forecast.weeks} Wochen <b>{fmtNum(forecast.perWeek)}</b> Punkte pro Woche zugelegt. Bei diesem Tempo wärst du
-              dann so weit.
-            </p>
-            <p className="small muted">
-              Das ist eine grobe Schätzung und verschiebt sich mit jeder Einheit – nimm sie als Richtung, nicht als
-              Termin.
+              Rechnerisch bist du stark genug: deine geschätzte Maximalkraft liegt bei{' '}
+              <b>{fmtNum(forecast.current)} kg</b>, dein Körpergewicht bei <b>{fmtNum(forecast.bodyweight)} kg</b>.
+              Probier den freien Versuch beim nächsten Training. Verlässlichkeit: {forecast.confidence}.
             </p>
           </>
+        )}
+
+        {forecast.reason === 'beyondYear' && (
+          <>
+            <div className="big-num">noch länger als ein Jahr</div>
+            <p className="small muted">Bei diesem Tempo dauert es noch über zwölf Monate. {forecast.confidence}.</p>
+          </>
+        )}
+
+        {forecast.reason === 'ok' && (
+          <>
+            <div className="big-num">KW {forecast.week}</div>
+            <p className="small muted">
+              Bei diesem Tempo wärst du etwa in KW {forecast.week} ({forecast.year}) so weit. Das ist eine grobe
+              Schätzung.
+            </p>
+            <p className="small muted">
+              Gerechnet aus deiner geschätzten Maximalkraft: aktuell rund <b>{fmtNum(forecast.current)} kg</b>, Ziel
+              ist dein Körpergewicht von <b>{fmtNum(forecast.bodyweight)} kg</b>. Zuletzt kamen{' '}
+              <b>{fmtNum(forecast.slopePerWeek)} kg</b> pro Woche dazu. Verlässlichkeit: {forecast.confidence}.
+            </p>
+          </>
+        )}
+
+        {forecast.reason !== 'done' && forecast.reason !== 'tooFewSessions' && (
+          <p className="small muted">
+            Die Bänder helfen unten mehr als oben, die hinterlegten Kilogramm sind deshalb Näherungswerte. Die
+            Schätzung ist zur Motivation da, nicht zur Planung.
+          </p>
         )}
       </div>
     </div>

@@ -1,5 +1,5 @@
 import type { Band, Session, YogaSession } from './db';
-import { BAND_TARGET_TOP, WEEKLY_GOAL, addDays, daysBetween, isoDate, weekStart } from './logic';
+import { WEEKLY_GOAL, addDays, daysBetween, isoDate, isoWeek, weekStart } from './logic';
 
 // How many sessions fall into the week that starts on `monday`
 export function countInWeek(dates: string[], monday: string): number {
@@ -18,70 +18,103 @@ export function weekStreak(dates: string[], goal = WEEKLY_GOAL, today = new Date
 
 // ---------- Forecast for the first free chin-up ----------
 
-// Progress on one scale: every finished band is worth BAND_TARGET_TOP points,
-// the reps on the current band are added on top.
-export function progressScore(session: Session, bands: Band[]): number {
-  const sorted = [...bands].sort((a, b) => a.order - b.order);
-  const index = sorted.findIndex((b) => b.id === session.bandSets[0]?.bandId);
-  const reps = Math.min(...session.bandSets.map((s) => s.reps));
-  return (index < 0 ? 0 : index) * BAND_TARGET_TOP + Math.min(reps, BAND_TARGET_TOP);
+export const FORECAST_MIN_SESSIONS = 6;
+export const FORECAST_WINDOW = 12; // only the most recent sessions count
+const MAX_REPS_FOR_EPLEY = 10; // above that the formula gets unreliable
+
+// Step 1 + 2: effective load per set, then Epley. The best set of the session counts.
+export function sessionE1rm(session: Session, bands: Band[], bodyweight: number): number | null {
+  const values = session.bandSets
+    .filter((set) => set.reps >= 1 && set.reps <= MAX_REPS_FOR_EPLEY)
+    .map((set) => {
+      const assist = bands.find((b) => b.id === set.bandId)?.assistKg ?? 0;
+      const load = bodyweight - assist;
+      return load * (1 + set.reps / 30);
+    });
+  return values.length > 0 ? Math.max(...values) : null;
 }
 
 export interface Forecast {
-  date: string | null; // estimated date of the first free chin-up
-  reason: 'ok' | 'tooFewSessions' | 'tooShort' | 'noTrend' | 'reached';
+  reason: 'ok' | 'now' | 'beyondYear' | 'tooFewSessions' | 'noTrend' | 'done';
+  week: number | null; // calendar week of the estimate
+  year: number | null;
   sessionsNeeded: number;
-  score: number; // where she stands today
-  target: number; // score that means "no band at all"
-  perWeek: number; // progress per week so far
-  weeks: number; // weeks the estimate is based on
+  slopePerWeek: number; // kg per week
+  r2: number; // how well the line fits
+  confidence: string; // that, in words
+  current: number; // today's estimated max strength
+  bodyweight: number;
 }
 
-export const FORECAST_MIN_SESSIONS = 6;
-export const FORECAST_MIN_DAYS = 21; // less than three weeks says nothing about the pace
+function confidenceText(r2: number): string {
+  if (r2 >= 0.7) return 'Trend ist deutlich';
+  if (r2 >= 0.4) return 'Trend ist erkennbar, schwankt aber';
+  return 'noch zu schwankend für eine Aussage';
+}
 
-// Rough estimate on one scale: every band is worth 6 points, the reps on the current
-// band are added. How many points per week has she gained, and how long until the
-// score of "no band" is reached?
-export function forecastFreeChinUp(sessions: Session[], bands: Band[], today = new Date()): Forecast {
-  const ordered = [...sessions].sort((a, b) => a.timestamp - b.timestamp);
-  const target = bands.length * BAND_TARGET_TOP;
-  const empty = { date: null, sessionsNeeded: 0, score: 0, target, perWeek: 0, weeks: 0 };
-
-  if (ordered.length < FORECAST_MIN_SESSIONS) {
-    return { ...empty, reason: 'tooFewSessions', sessionsNeeded: FORECAST_MIN_SESSIONS - ordered.length };
-  }
-
-  // Averaged over three sessions at each end, so a single weak day doesn't flip the estimate
-  const early = ordered.slice(0, 3);
-  const late = ordered.slice(-3);
-  const avg = (list: Session[]) => list.reduce((sum, s) => sum + progressScore(s, bands), 0) / list.length;
-  const middleDate = (list: Session[]) => list[Math.floor(list.length / 2)].date;
-  const days = daysBetween(middleDate(early), middleDate(late));
-  const score = Math.round(avg(late) * 10) / 10;
-  const startScore = avg(early);
-
-  if (progressScore(ordered[ordered.length - 1], bands) >= target) {
-    return { ...empty, reason: 'reached', score };
-  }
-  // All sessions within a few days say nothing about the pace
-  if (days < FORECAST_MIN_DAYS) return { ...empty, reason: 'tooShort', score };
-
-  const weeks = days / 7;
-  const perWeek = (score - startScore) / weeks;
-  if (perWeek <= 0) return { ...empty, reason: 'noTrend', score, weeks: Math.round(weeks) };
-
-  const weeksLeft = Math.ceil((target - score) / perWeek);
-  const estimate = addDays(isoDate(today), weeksLeft * 7);
-  return {
-    date: estimate,
-    reason: 'ok',
+// Steps 3 + 4: straight line through the e1rm values, then the day it reaches her bodyweight.
+export function forecastFreeChinUp(
+  sessions: Session[],
+  bands: Band[],
+  bodyweight: number,
+  today = new Date(),
+): Forecast {
+  const empty = {
+    week: null,
+    year: null,
     sessionsNeeded: 0,
-    score,
-    target,
-    perWeek: Math.round(perWeek * 10) / 10,
-    weeks: Math.round(weeks),
+    slopePerWeek: 0,
+    r2: 0,
+    confidence: confidenceText(0),
+    current: 0,
+    bodyweight,
   };
+
+  // Already done it once – nothing left to estimate
+  if (sessions.some((s) => s.free?.done)) return { ...empty, reason: 'done' };
+
+  const ordered = [...sessions].sort((a, b) => a.timestamp - b.timestamp);
+  const points = ordered
+    .map((s) => ({ date: s.date, e1rm: sessionE1rm(s, bands, bodyweight) }))
+    .filter((p): p is { date: string; e1rm: number } => p.e1rm !== null)
+    .slice(-FORECAST_WINDOW);
+
+  if (points.length < FORECAST_MIN_SESSIONS) {
+    return { ...empty, reason: 'tooFewSessions', sessionsNeeded: FORECAST_MIN_SESSIONS - points.length };
+  }
+
+  // Linear regression of e1rm against the date, x in days
+  const firstDate = points[0].date;
+  const xs = points.map((p) => daysBetween(firstDate, p.date));
+  const ys = points.map((p) => p.e1rm);
+  const n = points.length;
+  const meanX = xs.reduce((a, b) => a + b, 0) / n;
+  const meanY = ys.reduce((a, b) => a + b, 0) / n;
+  const sxx = xs.reduce((a, x) => a + (x - meanX) ** 2, 0);
+  const sxy = xs.reduce((a, x, i) => a + (x - meanX) * (ys[i] - meanY), 0);
+  const slope = sxx === 0 ? 0 : sxy / sxx; // kg per day
+  const intercept = meanY - slope * meanX;
+
+  // R²: how much of the scatter the line explains
+  const ssTot = ys.reduce((a, y) => a + (y - meanY) ** 2, 0);
+  const ssRes = ys.reduce((a, y, i) => a + (y - (intercept + slope * xs[i])) ** 2, 0);
+  const r2 = ssTot === 0 ? 0 : Math.max(0, 1 - ssRes / ssTot);
+
+  const current = intercept + slope * xs[n - 1];
+  const base = { ...empty, slopePerWeek: slope * 7, r2, confidence: confidenceText(r2), current };
+
+  if (slope <= 0) return { ...base, reason: 'noTrend' };
+
+  // The day the line reaches her bodyweight
+  const daysFromFirst = (bodyweight - intercept) / slope;
+  const targetDate = addDays(firstDate, Math.ceil(daysFromFirst));
+  const daysFromToday = daysBetween(isoDate(today), targetDate);
+  if (daysFromToday > 365) return { ...base, reason: 'beyondYear' };
+  // The line already passed her bodyweight – no point naming a future week
+  if (daysFromToday <= 0) return { ...base, reason: 'now' };
+
+  const { week, year } = isoWeek(targetDate);
+  return { ...base, reason: 'ok', week, year };
 }
 
 export function yogaDates(list: YogaSession[]): string[] {

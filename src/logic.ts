@@ -47,6 +47,17 @@ export function fmtClock(totalSeconds: number): string {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
+// ISO week number, as used on German calendars
+export function isoWeek(iso: string): { week: number; year: number } {
+  const d = parseIsoDate(iso);
+  const target = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  target.setDate(target.getDate() + 3 - ((target.getDay() + 6) % 7)); // Thursday of this week
+  const firstThursday = new Date(target.getFullYear(), 0, 4);
+  firstThursday.setDate(firstThursday.getDate() + 3 - ((firstThursday.getDay() + 6) % 7));
+  const week = 1 + Math.round((target.getTime() - firstThursday.getTime()) / (7 * 86400000));
+  return { week, year: target.getFullYear() };
+}
+
 // ---------- The rules ----------
 
 export const WEEKLY_GOAL = 3;

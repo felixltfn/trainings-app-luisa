@@ -2,8 +2,9 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useRef, useState } from 'react';
 
 import { Picker } from '../Picker';
+import { clearAllData, generateTestData } from '../testdata';
 import { exportBackup, importBackup } from '../backup';
-import { BAND_COLORS, BAND_COLOR_NAMES, db, getMeta } from '../db';
+import { BAND_COLORS, BAND_COLOR_NAMES, DEFAULT_BODYWEIGHT, db, getMeta, setMeta } from '../db';
 
 export function SettingsScreen() {
   const [message, setMessage] = useState('');
@@ -15,11 +16,12 @@ export function SettingsScreen() {
     const sessions = await db.sessions.count();
     const yoga = await db.yoga.count();
     const lastExport = await getMeta<number>('lastExport');
-    return { bands, sessions, yoga, lastExport };
+    const bodyweight = (await getMeta<number>('bodyweight')) ?? DEFAULT_BODYWEIGHT;
+    return { bands, sessions, yoga, lastExport, bodyweight };
   }, []);
 
   if (!data) return <div className="screen" />;
-  const { bands, sessions, yoga, lastExport } = data;
+  const { bands, sessions, yoga, lastExport, bodyweight } = data;
 
   const run = async (fn: () => Promise<string>) => {
     try {
@@ -35,7 +37,7 @@ export function SettingsScreen() {
     setNewBand('');
     const used = new Set(bands.map((b) => b.color));
     const color = BAND_COLORS.find((c) => !used.has(c)) ?? BAND_COLORS[bands.length % BAND_COLORS.length];
-    await db.bands.add({ name, order: bands.length, color });
+    await db.bands.add({ name, order: bands.length, color, assistKg: 5 });
   };
 
   const renumber = async (list: { id: number }[]) => {
@@ -71,7 +73,8 @@ export function SettingsScreen() {
         <p className="label">Bänder</p>
         <p className="small muted">
           Von oben nach unten: das oberste hilft am meisten, das unterste am wenigsten. Die Reihenfolge bestimmt,
-          welches Band als Nächstes dran ist.
+          welches Band als Nächstes dran ist. Die Zahl daneben ist, wie viele Kilo dir das Band ungefähr abnimmt –
+          damit rechnet die Prognose.
         </p>
         <div className="list section-sm">
           {bands.map((b, i) => (
@@ -88,6 +91,16 @@ export function SettingsScreen() {
                 className="input grow"
                 defaultValue={b.name}
                 onBlur={(e) => e.target.value.trim() && db.bands.update(b.id, { name: e.target.value.trim() })}
+              />
+              <input
+                className="input kg-input num"
+                inputMode="decimal"
+                aria-label={`Hilfe in Kilogramm für ${b.name}`}
+                defaultValue={b.assistKg}
+                onBlur={(e) => {
+                  const kg = Number(e.target.value.replace(',', '.'));
+                  if (Number.isFinite(kg) && kg >= 0) db.bands.update(b.id, { assistKg: kg });
+                }}
               />
               <button className="icon-btn" aria-label="Nach oben" disabled={i === 0} onClick={() => move(i, -1)}>
                 ↑
@@ -120,6 +133,26 @@ export function SettingsScreen() {
       </div>
 
       <div className="section">
+        <p className="label">Körpergewicht</p>
+        <p className="small muted">
+          Ziel der Prognose: so viel Kraft, dass du dein eigenes Gewicht hochziehst. Ändere den Wert, wenn er sich
+          verschiebt.
+        </p>
+        <label className="field">
+          <span>Kilogramm</span>
+          <input
+            className="num-input"
+            inputMode="decimal"
+            defaultValue={bodyweight}
+            onBlur={(e) => {
+              const kg = Number(e.target.value.replace(',', '.'));
+              if (Number.isFinite(kg) && kg > 0) setMeta('bodyweight', kg);
+            }}
+          />
+        </label>
+      </div>
+
+      <div className="section">
         <p className="label">Daten</p>
         <p className="small muted">
           Alles liegt nur auf diesem Gerät: {sessions} Chin-Up-Einheiten, {yoga} Yoga-Einheiten. Letztes Backup:{' '}
@@ -145,6 +178,25 @@ export function SettingsScreen() {
               run(() => importBackup(file));
             }}
           />
+        </div>
+      </div>
+
+      <div className="section">
+        <p className="label">Zum Ausprobieren</p>
+        <p className="small muted">
+          Legt vier Wochen mit je drei Chin-Up- und Yoga-Einheiten an, damit du Kalender, Diagramme und Prognose mit
+          Inhalt siehst.
+        </p>
+        <div className="stack section-sm">
+          <button className="btn secondary block" onClick={() => run(generateTestData)}>
+            Testdaten anlegen (4 Wochen)
+          </button>
+          <button
+            className="btn danger block"
+            onClick={() => confirm('Alle eingetragenen Einheiten löschen?') && run(clearAllData)}
+          >
+            Alle Einheiten löschen
+          </button>
         </div>
       </div>
 

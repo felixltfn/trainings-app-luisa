@@ -7,6 +7,7 @@ export interface Band {
   name: string;
   order: number;
   color: string; // one of BAND_COLORS
+  assistKg: number; // roughly how much the band takes off her bodyweight
 }
 
 // Her bands, from thick to thin
@@ -53,6 +54,8 @@ export interface YogaSession {
   date: string; // YYYY-MM-DD
   minutes: number;
 }
+
+export const DEFAULT_BODYWEIGHT = 65;
 
 export interface Meta {
   key: string;
@@ -107,6 +110,24 @@ db.version(3)
     }
   });
 
+// Version 4 added the band assistance in kg, needed for the forecast
+db.version(4)
+  .stores({
+    bands: '++id, order',
+    sessions: '++id, date, timestamp',
+    yoga: '++id, date',
+    meta: 'key',
+  })
+  .upgrade(async (tx) => {
+    const defaults = [20, 13, 7];
+    const bands = await tx.table('bands').toArray();
+    for (const band of bands) {
+      if (band.assistKg === undefined) {
+        await tx.table('bands').update(band.id, { assistKg: defaults[band.order] ?? 5 });
+      }
+    }
+  });
+
 export const TABLES = ['bands', 'sessions', 'yoga', 'meta'] as const;
 
 export async function getMeta<T>(key: string): Promise<T | undefined> {
@@ -122,8 +143,8 @@ export async function setMeta(key: string, value: unknown): Promise<void> {
 export async function seedIfEmpty(): Promise<void> {
   if ((await db.bands.count()) > 0) return;
   await db.bands.bulkAdd([
-    { name: 'dick', order: 0, color: BAND_COLORS[0] },
-    { name: 'mittel', order: 1, color: BAND_COLORS[1] },
-    { name: 'dünn', order: 2, color: BAND_COLORS[2] },
+    { name: 'dick', order: 0, color: BAND_COLORS[0], assistKg: 20 },
+    { name: 'mittel', order: 1, color: BAND_COLORS[1], assistKg: 13 },
+    { name: 'dünn', order: 2, color: BAND_COLORS[2], assistKg: 7 },
   ]);
 }

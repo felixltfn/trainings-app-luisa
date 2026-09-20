@@ -1063,3 +1063,98 @@ button.banner {
   padding: 0 10px;
   font-size: 15px;
 }
+
+.kg-input {
+  width: 62px;
+  flex: none;
+  min-height: 44px;
+  padding: 0 8px;
+  text-align: center;
+}
+
+/* ---------- Calendar ---------- */
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  row-gap: 4px;
+  touch-action: pan-y;
+}
+
+.cal-dow {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2);
+  text-align: center;
+  padding: 8px 0;
+}
+
+.cal-day {
+  aspect-ratio: 1 / 1.1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding-top: 8px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cal-day.other {
+  color: var(--text-2);
+  opacity: 0.35;
+}
+
+.cal-day.today .d {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.cal-day.has {
+  background: var(--surface);
+}
+
+.marks {
+  display: flex;
+  gap: 3px;
+}
+
+.mark {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.mark.chin {
+  background: var(--accent);
+}
+
+.mark.yoga {
+  background: var(--text-2);
+}
+
+.legend {
+  display: flex;
+  gap: 18px;
+  font-size: 14px;
+  color: var(--text-2);
+}
+
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.day-entry {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.day-entry p {
+  margin: 0 0 6px;
+}
