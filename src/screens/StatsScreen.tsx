@@ -2,7 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 import { db } from '../db';
-import { WEEKLY_GOAL, fmtDate, freeHeightLabel, parseIsoDate, weekStart } from '../logic';
+import { WEEKLY_GOAL, fmtDate, fmtNum, freeHeightLabel, parseIsoDate, weekStart } from '../logic';
 import { countInWeek, forecastFreeChinUp, weekStreak } from '../stats';
 
 const axis = { fontSize: 12, fill: 'var(--text-2)' };
@@ -132,23 +132,39 @@ export function StatsScreen() {
 
       <div className="section">
         <p className="label">Erster freier Chin-Up</p>
-        {forecast.reason === 'tooFewSessions' ? (
+        {forecast.reason === 'tooFewSessions' && (
           <p className="muted small">
             Noch {forecast.sessionsNeeded} {forecast.sessionsNeeded === 1 ? 'Einheit' : 'Einheiten'}, dann zeigt die
             App hier eine Schätzung. Vorher wäre sie reine Kaffeesatzleserei.
           </p>
-        ) : forecast.date ? (
+        )}
+        {forecast.reason === 'tooShort' && (
+          <p className="muted small">
+            Die Einheiten liegen noch zu dicht beieinander. Sobald zwischen der ersten und der letzten mindestens
+            drei Wochen liegen, lässt sich ein Tempo ablesen.
+          </p>
+        )}
+        {forecast.reason === 'noTrend' && (
+          <p className="muted small">
+            In den letzten {forecast.weeks} Wochen ist der Stand gleich geblieben. Sobald es wieder aufwärts geht,
+            erscheint hier eine Schätzung.
+          </p>
+        )}
+        {forecast.reason === 'reached' && <p className="accent">Du bist über das dünnste Band hinaus – jetzt zählt nur noch der freie Versuch.</p>}
+        {forecast.reason === 'ok' && forecast.date && (
           <>
             <div className="big-num">{fmtDate(forecast.date)}</div>
             <p className="small muted">
-              Grobe Schätzung, hochgerechnet aus Band und Wiederholungen der bisherigen Einheiten. Sie verschiebt
-              sich mit jeder neuen Einheit – nimm sie als Richtung, nicht als Termin.
+              So gerechnet: Jede Bandstufe zählt 6 Punkte, dazu kommen deine Wiederholungen. Im Schnitt der letzten
+              drei Einheiten stehst du bei <b>{fmtNum(forecast.score)}</b> von <b>{forecast.target}</b> Punkten und hast über{' '}
+              {forecast.weeks} Wochen <b>{fmtNum(forecast.perWeek)}</b> Punkte pro Woche zugelegt. Bei diesem Tempo wärst du
+              dann so weit.
+            </p>
+            <p className="small muted">
+              Das ist eine grobe Schätzung und verschiebt sich mit jeder Einheit – nimm sie als Richtung, nicht als
+              Termin.
             </p>
           </>
-        ) : (
-          <p className="muted small">
-            Für eine Schätzung fehlt noch ein klarer Aufwärtstrend. Trag weiter ein, dann erscheint sie hier.
-          </p>
         )}
       </div>
     </div>

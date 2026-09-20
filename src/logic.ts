@@ -34,6 +34,10 @@ export function fmtDate(iso: string): string {
   return parseIsoDate(iso).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' });
 }
 
+export function fmtNum(n: number): string {
+  return n.toLocaleString('de-DE', { maximumFractionDigits: 1 });
+}
+
 export function fmtMinutes(min: number): string {
   return min >= 60 ? `${Math.floor(min / 60)} h ${min % 60} min` : `${min} min`;
 }

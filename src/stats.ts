@@ -1,5 +1,5 @@
 import type { Band, Session, YogaSession } from './db';
-import { BAND_TARGET_TOP, WEEKLY_GOAL, addDays, isoDate, weekStart } from './logic';
+import { BAND_TARGET_TOP, WEEKLY_GOAL, addDays, daysBetween, isoDate, weekStart } from './logic';
 
 // How many sessions fall into the week that starts on `monday`
 export function countInWeek(dates: string[], monday: string): number {
@@ -29,39 +29,59 @@ export function progressScore(session: Session, bands: Band[]): number {
 
 export interface Forecast {
   date: string | null; // estimated date of the first free chin-up
-  reason: 'ok' | 'tooFewSessions' | 'noTrend';
+  reason: 'ok' | 'tooFewSessions' | 'tooShort' | 'noTrend' | 'reached';
   sessionsNeeded: number;
+  score: number; // where she stands today
+  target: number; // score that means "no band at all"
+  perWeek: number; // progress per week so far
+  weeks: number; // weeks the estimate is based on
 }
 
 export const FORECAST_MIN_SESSIONS = 6;
+export const FORECAST_MIN_DAYS = 21; // less than three weeks says nothing about the pace
 
-// Rough linear estimate: how fast has the score grown so far, and when does it
-// reach the score of "no band at all"?
+// Rough estimate on one scale: every band is worth 6 points, the reps on the current
+// band are added. How many points per week has she gained, and how long until the
+// score of "no band" is reached?
 export function forecastFreeChinUp(sessions: Session[], bands: Band[], today = new Date()): Forecast {
   const ordered = [...sessions].sort((a, b) => a.timestamp - b.timestamp);
+  const target = bands.length * BAND_TARGET_TOP;
+  const empty = { date: null, sessionsNeeded: 0, score: 0, target, perWeek: 0, weeks: 0 };
+
   if (ordered.length < FORECAST_MIN_SESSIONS) {
-    return { date: null, reason: 'tooFewSessions', sessionsNeeded: FORECAST_MIN_SESSIONS - ordered.length };
+    return { ...empty, reason: 'tooFewSessions', sessionsNeeded: FORECAST_MIN_SESSIONS - ordered.length };
   }
 
-  const first = ordered[0].timestamp;
-  const points = ordered.map((s) => ({ x: (s.timestamp - first) / 86400000, y: progressScore(s, bands) }));
-  const n = points.length;
-  const sumX = points.reduce((a, p) => a + p.x, 0);
-  const sumY = points.reduce((a, p) => a + p.y, 0);
-  const sumXY = points.reduce((a, p) => a + p.x * p.y, 0);
-  const sumXX = points.reduce((a, p) => a + p.x * p.x, 0);
-  const denominator = n * sumXX - sumX * sumX;
-  const slope = denominator === 0 ? 0 : (n * sumXY - sumX * sumY) / denominator;
+  // Averaged over three sessions at each end, so a single weak day doesn't flip the estimate
+  const early = ordered.slice(0, 3);
+  const late = ordered.slice(-3);
+  const avg = (list: Session[]) => list.reduce((sum, s) => sum + progressScore(s, bands), 0) / list.length;
+  const middleDate = (list: Session[]) => list[Math.floor(list.length / 2)].date;
+  const days = daysBetween(middleDate(early), middleDate(late));
+  const score = Math.round(avg(late) * 10) / 10;
+  const startScore = avg(early);
 
-  const target = bands.length * BAND_TARGET_TOP; // past the thinnest band = free
-  const current = points[n - 1].y;
-  if (slope <= 0.01 || current >= target) {
-    return { date: null, reason: current >= target ? 'ok' : 'noTrend', sessionsNeeded: 0 };
+  if (progressScore(ordered[ordered.length - 1], bands) >= target) {
+    return { ...empty, reason: 'reached', score };
   }
+  // All sessions within a few days say nothing about the pace
+  if (days < FORECAST_MIN_DAYS) return { ...empty, reason: 'tooShort', score };
 
-  const daysLeft = Math.ceil((target - current) / slope);
-  const estimate = new Date(today.getTime() + daysLeft * 86400000);
-  return { date: isoDate(estimate), reason: 'ok', sessionsNeeded: 0 };
+  const weeks = days / 7;
+  const perWeek = (score - startScore) / weeks;
+  if (perWeek <= 0) return { ...empty, reason: 'noTrend', score, weeks: Math.round(weeks) };
+
+  const weeksLeft = Math.ceil((target - score) / perWeek);
+  const estimate = addDays(isoDate(today), weeksLeft * 7);
+  return {
+    date: estimate,
+    reason: 'ok',
+    sessionsNeeded: 0,
+    score,
+    target,
+    perWeek: Math.round(perWeek * 10) / 10,
+    weeks: Math.round(weeks),
+  };
 }
 
 export function yogaDates(list: YogaSession[]): string[] {

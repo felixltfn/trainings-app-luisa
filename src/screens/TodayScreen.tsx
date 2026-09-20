@@ -20,7 +20,7 @@ import { SessionScreen } from './SessionScreen';
 
 export function TodayScreen() {
   const [entering, setEntering] = useState(false);
-  const [saved, setSaved] = useState(false); // short confirmation after saving
+  const [toYoga, setToYoga] = useState(false); // straight from the session to the yoga start
   const [startedAt, setStartedAt] = useState<number | null>(loadStart);
   const [stopping, setStopping] = useState<number | null>(null); // minutes, editable before saving
   const [manual, setManual] = useState(false);
@@ -55,8 +55,7 @@ export function TodayScreen() {
         onClose={() => setEntering(false)}
         onSaved={() => {
           setEntering(false);
-          setSaved(true);
-          window.setTimeout(() => setSaved(false), 2500);
+          setToYoga(true);
         }}
       />
     );
@@ -88,6 +87,29 @@ export function TodayScreen() {
     setManual(false);
   };
 
+  // Right after saving the session: nothing but the way into the yoga session
+  if (toYoga && !startedAt) {
+    return (
+      <div className="screen">
+        <p className="label">Chin-Ups gespeichert</p>
+        <h1 className="title">Weiter mit Yoga</h1>
+        <p className="muted">Starte die Zeit, wenn du loslegst. Sie läuft weiter, auch wenn du das Handy weglegst.</p>
+        <button
+          className="btn block section"
+          onClick={() => {
+            startYoga();
+            setToYoga(false);
+          }}
+        >
+          Yoga starten
+        </button>
+        <button className="btn secondary block section-sm" onClick={() => setToYoga(false)}>
+          Heute kein Yoga
+        </button>
+      </div>
+    );
+  }
+
   // While yoga runs she has put the phone away – nothing about chin-ups on screen
   if (startedAt && stopping === null) {
     return (
@@ -111,8 +133,6 @@ export function TodayScreen() {
         {new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })}
       </p>
       <h1 className="title">Heute</h1>
-
-      {saved && <p className="banner section-sm">Einheit gespeichert. Die Ziele fürs nächste Mal stehen beim Eintragen.</p>}
 
       <div className="stats-row section">
         <div className="stat">

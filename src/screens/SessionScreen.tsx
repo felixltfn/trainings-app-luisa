@@ -28,6 +28,7 @@ export function SessionScreen({ onClose, onSaved }: Props) {
   const [reps, setReps] = useState(['', '']);
   const [bandId, setBandId] = useState<number | null>(null);
   const [negReps, setNegReps] = useState('');
+  const [negSeconds, setNegSeconds] = useState('');
   const [hold, setHold] = useState('');
   const [freeTried, setFreeTried] = useState(false);
   const [freeDone, setFreeDone] = useState(false);
@@ -53,8 +54,8 @@ export function SessionScreen({ onClose, onSaved }: Props) {
       setError('Wähle das Band aus, mit dem du gezogen hast.');
       return;
     }
-    if (num(negReps) <= 0) {
-      setError('Trag ein, wie viele negative Chin-Ups du geschafft hast.');
+    if (num(negReps) <= 0 || num(negSeconds) <= 0) {
+      setError('Bei den negativen Chin-Ups fehlen die Wiederholungen oder die Sekunden.');
       return;
     }
     if (num(hold) <= 0) {
@@ -69,8 +70,7 @@ export function SessionScreen({ onClose, onSaved }: Props) {
       hangSeconds: hang && num(hangSeconds) > 0 ? num(hangSeconds) : null,
       bandSets: reps.map((r) => ({ reps: num(r), bandId: chosenBand })),
       negativeReps: num(negReps),
-      // The seconds come from the current step of the ladder – she only counts the reps
-      negativeSeconds: plan.negative.seconds,
+      negativeSeconds: num(negSeconds),
       holdSeconds: num(hold),
       free: freeTried ? { done: freeDone, height: freeDone ? null : freeHeight } : null,
     };
@@ -208,18 +208,32 @@ export function SessionScreen({ onClose, onSaved }: Props) {
             Ziel: <b>{plan.negative.reps}</b> Stück, dabei jeweils <b>{plan.negative.seconds}</b> Sekunden lang nach
             unten.
           </p>
-          <label className="field">
-            <span>Geschaffte Wiederholungen</span>
-            <input
-              className="num-input"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              placeholder="0"
-              value={negReps}
-              onChange={(e) => setNegReps(e.target.value)}
-              onFocus={(e) => e.target.select()}
-            />
-          </label>
+          <div className="pair">
+            <label className="field">
+              <span>Wiederholungen</span>
+              <input
+                className="num-input"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                placeholder="0"
+                value={negReps}
+                onChange={(e) => setNegReps(e.target.value)}
+                onFocus={(e) => e.target.select()}
+              />
+            </label>
+            <label className="field">
+              <span>Sekunden pro Stück</span>
+              <input
+                className="num-input"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                placeholder={String(plan.negative.seconds)}
+                value={negSeconds}
+                onChange={(e) => setNegSeconds(e.target.value)}
+                onFocus={(e) => e.target.select()}
+              />
+            </label>
+          </div>
         </section>
 
         {/* 3 – hold */}
