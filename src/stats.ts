@@ -100,18 +100,17 @@ export function forecastFreeChinUp(
   const ssRes = ys.reduce((a, y, i) => a + (y - (intercept + slope * xs[i])) ** 2, 0);
   const r2 = ssTot === 0 ? 0 : Math.max(0, 1 - ssRes / ssTot);
 
-  const current = intercept + slope * xs[n - 1];
+  // Where the line stands today, not at the last session
+  const current = intercept + slope * daysBetween(firstDate, isoDate(today));
   const base = { ...empty, slopePerWeek: slope * 7, r2, confidence: confidenceText(r2), current };
 
   if (slope <= 0) return { ...base, reason: 'noTrend' };
+  // Already strong enough on paper – no point naming a future week
+  if (current >= bodyweight) return { ...base, reason: 'now' };
 
   // The day the line reaches her bodyweight
-  const daysFromFirst = (bodyweight - intercept) / slope;
-  const targetDate = addDays(firstDate, Math.ceil(daysFromFirst));
-  const daysFromToday = daysBetween(isoDate(today), targetDate);
-  if (daysFromToday > 365) return { ...base, reason: 'beyondYear' };
-  // The line already passed her bodyweight – no point naming a future week
-  if (daysFromToday <= 0) return { ...base, reason: 'now' };
+  const targetDate = addDays(firstDate, Math.ceil((bodyweight - intercept) / slope));
+  if (daysBetween(isoDate(today), targetDate) > 365) return { ...base, reason: 'beyondYear' };
 
   const { week, year } = isoWeek(targetDate);
   return { ...base, reason: 'ok', week, year };

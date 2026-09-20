@@ -11,16 +11,25 @@ export interface Band {
 }
 
 // Her bands, from thick to thin
-// Bright, like the bands themselves
-export const BAND_COLORS = ['#22d24b', '#f52d2d', '#ff8a1f', '#ffd60a', '#2f9bff', '#a855f7'] as const;
+// The four bands she owns, in the colours of the set
+export const BAND_COLORS = ['#1faa4e', '#f04a4a', '#e8752a', '#f3c73f', '#2f9bff', '#a855f7'] as const;
 export const BAND_COLOR_NAMES: Record<string, string> = {
-  '#22d24b': 'grün',
-  '#f52d2d': 'rot',
-  '#ff8a1f': 'orange',
-  '#ffd60a': 'gelb',
+  '#1faa4e': 'grün',
+  '#f04a4a': 'rot',
+  '#e8752a': 'orange',
+  '#f3c73f': 'gelb',
   '#2f9bff': 'blau',
   '#a855f7': 'lila',
 };
+
+// Her set, from the strongest help to the weakest. The kilos are the middle of the
+// range printed on each band (40–90 lbs, 30–60, 15–35, 5–15), converted and rounded.
+export const BAND_SET = [
+  { name: 'grün', color: BAND_COLORS[0], assistKg: 29 },
+  { name: 'rot', color: BAND_COLORS[1], assistKg: 20 },
+  { name: 'orange', color: BAND_COLORS[2], assistKg: 11 },
+  { name: 'gelb', color: BAND_COLORS[3], assistKg: 5 },
+];
 
 // The muted first palette, replaced by the bright one above
 const OLD_COLORS: Record<string, string> = {
@@ -55,7 +64,7 @@ export interface YogaSession {
   minutes: number;
 }
 
-export const DEFAULT_BODYWEIGHT = 65;
+export const DEFAULT_BODYWEIGHT = 52;
 
 export interface Meta {
   key: string;
@@ -128,6 +137,26 @@ db.version(4)
     }
   });
 
+// Version 5 switched to her actual set of four bands
+db.version(5)
+  .stores({
+    bands: '++id, order',
+    sessions: '++id, date, timestamp',
+    yoga: '++id, date',
+    meta: 'key',
+  })
+  .upgrade(async (tx) => {
+    const bands = (await tx.table('bands').toArray()).sort((a, b) => a.order - b.order);
+    for (const [i, band] of bands.entries()) {
+      const target = BAND_SET[i];
+      if (target) await tx.table('bands').update(band.id, target);
+    }
+    // Add the bands she didn't have yet, keeping the existing ids intact
+    for (let i = bands.length; i < BAND_SET.length; i++) {
+      await tx.table('bands').add({ ...BAND_SET[i], order: i });
+    }
+  });
+
 export const TABLES = ['bands', 'sessions', 'yoga', 'meta'] as const;
 
 export async function getMeta<T>(key: string): Promise<T | undefined> {
@@ -139,12 +168,8 @@ export async function setMeta(key: string, value: unknown): Promise<void> {
   await db.meta.put({ key, value });
 }
 
-// The three bands she owns right now. Editable later in the settings.
+// Her four bands. Names, colours and kilos stay editable in the settings.
 export async function seedIfEmpty(): Promise<void> {
   if ((await db.bands.count()) > 0) return;
-  await db.bands.bulkAdd([
-    { name: 'dick', order: 0, color: BAND_COLORS[0], assistKg: 20 },
-    { name: 'mittel', order: 1, color: BAND_COLORS[1], assistKg: 13 },
-    { name: 'dünn', order: 2, color: BAND_COLORS[2], assistKg: 7 },
-  ]);
+  await db.bands.bulkAdd(BAND_SET.map((b, order) => ({ ...b, order })));
 }
