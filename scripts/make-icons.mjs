@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
 import { deflateSync } from 'node:zlib';
 
-const ACCENT = [194, 24, 91];
+const ACCENT = [249, 100, 234];
 
 function crc32(buf) {
   let c;
@@ -42,7 +42,7 @@ function png(size) {
   for (let y = 0; y < size; y++) {
     raw[y * (size * 3 + 1)] = 0;
     for (let x = 0; x < size; x++) {
-      const px = isWhite(x, y, size) ? [255, 255, 255] : ACCENT;
+      const px = isWhite(x, y, size) ? [43, 10, 39] : ACCENT;
       raw.set(px, y * (size * 3 + 1) + 1 + x * 3);
     }
   }

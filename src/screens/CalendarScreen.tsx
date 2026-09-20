@@ -93,8 +93,8 @@ export function CalendarScreen() {
             <button key={iso} className={classes} onClick={() => setOpenDay(iso)}>
               <span className="d">{d.getDate()}</span>
               <span className="marks">
-                {hasChin && <span className="mark chin" />}
-                {hasYoga && <span className="mark yoga" />}
+                {hasChin && <span className="mark">C</span>}
+                {hasYoga && <span className="mark">Y</span>}
               </span>
             </button>
           );
@@ -103,10 +103,10 @@ export function CalendarScreen() {
 
       <div className="legend section-sm">
         <span>
-          <span className="mark chin" /> Chin-Ups
+          <span className="mark">C</span> Chin-Ups
         </span>
         <span>
-          <span className="mark yoga" /> Yoga
+          <span className="mark">Y</span> Yoga
         </span>
       </div>
 

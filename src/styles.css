@@ -6,9 +6,11 @@
   --text: #0a0a0a;
   --text-2: #6b6b70;
   --line: rgba(0, 0, 0, 0.1);
-  --accent: #c2185b;
-  --accent-soft: rgba(194, 24, 91, 0.12);
-  --on-accent: #ffffff;
+  --accent: #f964ea;
+  --accent-soft: rgba(249, 100, 234, 0.16);
+  /* The bright pink needs a darker shade for small text on white */
+  --accent-text: #c21fb0;
+  --on-accent: #2b0a27;
   --danger: #d70015;
   --gutter: 20px;
   --tap: 52px;
@@ -28,10 +30,10 @@
     --text: #f5f5f7;
     --text-2: #98989f;
     --line: rgba(255, 255, 255, 0.12);
-    --accent: #ff7aa8;
-    --accent-soft: rgba(255, 122, 168, 0.18);
-    /* dark text on the lighter pink reads better than white */
-    --on-accent: #20040f;
+    --accent: #f964ea;
+    --accent-soft: rgba(249, 100, 234, 0.2);
+    --accent-text: #f964ea;
+    --on-accent: #2b0a27;
     --danger: #ff453a;
   }
 }
@@ -168,7 +170,7 @@ button {
 }
 
 .accent {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 /* ---------- Lists (Swiss-style hairlines instead of cards) ---------- */
@@ -408,7 +410,7 @@ textarea.input {
 }
 
 .tabbar button.on {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .tabbar svg {
@@ -651,7 +653,7 @@ textarea.input {
 }
 
 .cal-day.today .d {
-  color: var(--accent);
+  color: var(--accent-text);
   font-weight: 700;
 }
 
@@ -793,7 +795,7 @@ button.banner {
 
 .streak-num {
   min-width: 64px;
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .set-extra {
@@ -963,7 +965,7 @@ button.banner {
 }
 
 .goal b {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .feedback {
@@ -1109,7 +1111,7 @@ button.banner {
 }
 
 .cal-day.today .d {
-  color: var(--accent);
+  color: var(--accent-text);
   font-weight: 700;
 }
 
@@ -1123,18 +1125,16 @@ button.banner {
 }
 
 .mark {
-  width: 8px;
-  height: 8px;
+  width: 17px;
+  height: 17px;
   border-radius: 50%;
-  display: inline-block;
-}
-
-.mark.chin {
   background: var(--accent);
-}
-
-.mark.yoga {
-  background: var(--text-2);
+  color: var(--on-accent);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 17px;
+  text-align: center;
+  display: inline-block;
 }
 
 .legend {
