@@ -1,0 +1,1018 @@
+/* Design tokens. One accent colour, light and dark follow the system setting. */
+:root {
+  --bg: #ffffff;
+  --surface: #f4f4f5;
+  --surface-2: #e9e9eb;
+  --text: #0a0a0a;
+  --text-2: #6b6b70;
+  --line: rgba(0, 0, 0, 0.1);
+  --accent: #7b2d4e;
+  --accent-soft: rgba(123, 45, 78, 0.12);
+  --on-accent: #ffffff;
+  --danger: #d70015;
+  --gutter: 20px;
+  --tap: 52px;
+  --radius: 12px;
+  --tabbar: 58px;
+  --font: -apple-system, BlinkMacSystemFont, system-ui, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #000000;
+    --surface: #161618;
+    --surface-2: #232326;
+    --text: #f5f5f7;
+    --text-2: #98989f;
+    --line: rgba(255, 255, 255, 0.12);
+    --accent: #e2809f;
+    --accent-soft: rgba(226, 128, 159, 0.18);
+    /* dark text on the lighter berry reads better than white */
+    --on-accent: #1a060f;
+    --danger: #ff453a;
+  }
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  /* Sans-serif everywhere: no element may fall back to the browser's serif default */
+  font-family: inherit;
+}
+
+svg text {
+  font-family: inherit;
+}
+
+html {
+  font-family: var(--font);
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 17px;
+  line-height: 1.35;
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior-y: none;
+}
+
+button,
+input,
+select,
+textarea,
+option,
+optgroup {
+  font-family: var(--font);
+  color: inherit;
+}
+
+button,
+input,
+select,
+textarea {
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+button {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+/* ---------- Layout ---------- */
+
+.screen {
+  padding: calc(var(--safe-top) + 20px) var(--gutter) calc(var(--tabbar) + var(--safe-bottom) + 96px);
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.stack > * + * {
+  margin-top: 12px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.spread {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.grow {
+  flex: 1;
+  min-width: 0;
+}
+
+.section {
+  margin-top: 36px;
+}
+
+/* ---------- Typography ---------- */
+
+.title {
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.h2 {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-2);
+  margin: 0 0 8px;
+}
+
+.muted {
+  color: var(--text-2);
+}
+
+.small {
+  font-size: 14px;
+}
+
+.big-num {
+  font-size: 44px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+.accent {
+  color: var(--accent);
+}
+
+/* ---------- Lists (Swiss-style hairlines instead of cards) ---------- */
+
+.list {
+  border-top: 1px solid var(--line);
+}
+
+.list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: var(--tap);
+  padding: 12px 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: none;
+  text-align: left;
+}
+
+.chevron::after {
+  content: '›';
+  font-size: 24px;
+  color: var(--text-2);
+  margin-left: auto;
+}
+
+/* ---------- Buttons ---------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: var(--tap);
+  padding: 0 20px;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+
+.btn:active {
+  opacity: 0.75;
+}
+
+.btn.secondary {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.btn.ghost {
+  background: none;
+  color: var(--accent);
+  padding: 0 8px;
+}
+
+.btn.danger {
+  background: none;
+  color: var(--danger);
+}
+
+.btn.block {
+  width: 100%;
+}
+
+.btn:disabled {
+  opacity: 0.35;
+}
+
+.icon-btn {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--surface);
+  font-size: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ---------- Form fields ---------- */
+
+.field {
+  display: block;
+  margin-top: 16px;
+}
+
+.field > span {
+  display: block;
+  font-size: 13px;
+  color: var(--text-2);
+  margin-bottom: 6px;
+}
+
+.input,
+.select {
+  width: 100%;
+  min-height: var(--tap);
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-size: 17px;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+textarea.input {
+  padding: 14px;
+  min-height: 88px;
+  resize: vertical;
+}
+
+.select {
+  background-image: linear-gradient(45deg, transparent 50%, var(--text-2) 50%),
+    linear-gradient(135deg, var(--text-2) 50%, transparent 50%);
+  background-position: calc(100% - 20px) 50%, calc(100% - 14px) 50%;
+  background-size: 6px 6px;
+  background-repeat: no-repeat;
+  padding-right: 36px;
+}
+
+.input:focus,
+.select:focus {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+}
+
+.check input {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--accent);
+}
+
+.pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 18px;
+  background: var(--surface);
+  font-size: 15px;
+}
+
+.chip.on {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* ---------- Segmented control ---------- */
+
+.segmented {
+  display: flex;
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 3px;
+}
+
+.segmented button {
+  flex: 1;
+  min-height: 40px;
+  border: 0;
+  border-radius: 9px;
+  background: none;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.segmented button.on {
+  background: var(--bg);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+/* ---------- Banner ---------- */
+
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+  font-size: 15px;
+}
+
+/* ---------- Tab bar ---------- */
+
+.tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  height: calc(var(--tabbar) + var(--safe-bottom));
+  padding-bottom: var(--safe-bottom);
+  background: color-mix(in srgb, var(--bg) 85%, transparent);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid var(--line);
+}
+
+.tabbar button {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border: 0;
+  background: none;
+  color: var(--text-2);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.tabbar button.on {
+  color: var(--accent);
+}
+
+.tabbar svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* ---------- Rest timer ---------- */
+
+.timer {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(var(--tabbar) + var(--safe-bottom) + 10px);
+  z-index: 19;
+  max-width: 616px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 10px 10px 18px;
+  border-radius: 16px;
+  background: var(--text);
+  color: var(--bg);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+}
+
+.timer .big-num {
+  font-size: 34px;
+}
+
+.timer.done {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.timer .icon-btn {
+  background: color-mix(in srgb, var(--bg) 18%, transparent);
+  color: inherit;
+}
+
+/* ---------- Workout ---------- */
+
+.slot {
+  padding: 24px 0 20px;
+  border-top: 1px solid var(--line);
+}
+
+.slot-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.slot-pos {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.slot-select {
+  margin-top: 10px;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.slot-info {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: 14px;
+  color: var(--text-2);
+}
+
+.slot-info b {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.hint {
+  margin-top: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.sets {
+  margin-top: 14px;
+}
+
+.set-row {
+  display: grid;
+  grid-template-columns: 34px 1fr 1fr 56px;
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+
+.set-no {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.set-no small {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.num-input {
+  width: 100%;
+  height: 56px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-size: 24px;
+  font-weight: 600;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.num-input:focus {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.num-input.small-font {
+  font-size: 18px;
+}
+
+.set-row.time,
+.set-head.time {
+  grid-template-columns: 34px 1fr 0.8fr 0.8fr 56px;
+}
+
+.set-head {
+  display: grid;
+  grid-template-columns: 34px 1fr 1fr 56px;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-2);
+  text-align: center;
+}
+
+
+.done-btn {
+  width: 56px;
+  height: 56px;
+  border: 2px solid var(--line);
+  border-radius: var(--radius);
+  background: none;
+  font-size: 24px;
+  color: var(--text-2);
+}
+
+.done-btn.saved {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.done-btn.dirty {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.toggle-btn {
+  height: 44px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--surface);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.toggle-btn.on {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.last {
+  font-size: 13px;
+  color: var(--text-2);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  margin-top: 2px;
+  min-height: 16px;
+}
+
+.slot-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+/* ---------- Calendar ---------- */
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  row-gap: 4px;
+  touch-action: pan-y;
+}
+
+.cal-dow {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2);
+  text-align: center;
+  padding: 8px 0;
+}
+
+.cal-day {
+  aspect-ratio: 1 / 1.15;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 4px;
+  padding-top: 8px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cal-day.other {
+  color: var(--text-2);
+  opacity: 0.35;
+}
+
+.cal-day.today .d {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.cal-day.has {
+  background: var(--surface);
+}
+
+.cal-mark {
+  min-width: 22px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 20px;
+}
+
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.stat .big-num {
+  font-size: 26px;
+}
+
+.stat .label {
+  margin-bottom: 4px;
+}
+
+/* ---------- Sheet (full-screen overlay for day view and editors) ---------- */
+
+.sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  overflow-y: auto;
+  background: var(--bg);
+  -webkit-overflow-scrolling: touch;
+}
+
+.sheet .screen {
+  padding-bottom: calc(var(--safe-bottom) + 48px);
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-left: -8px;
+  padding: 0 8px;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-size: 17px;
+}
+
+/* ---------- Bars (hard sets) ---------- */
+
+.bar-row {
+  display: grid;
+  grid-template-columns: 130px 1fr 64px;
+  gap: 10px;
+  align-items: center;
+  font-size: 14px;
+  min-height: 30px;
+}
+
+.bar-track {
+  position: relative;
+  height: 10px;
+  border-radius: 5px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.bar-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 5px;
+  background: var(--accent);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+.table td {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.table td:last-child {
+  text-align: right;
+}
+
+.chart {
+  width: 100%;
+  height: 220px;
+  margin-top: 8px;
+}
+
+.up {
+  color: #1f9d55;
+}
+
+.down {
+  color: var(--danger);
+}
+
+.timer-sub {
+  opacity: 0.7;
+}
+
+.section-sm {
+  margin-top: 16px;
+}
+
+.flush {
+  margin: 0;
+}
+
+.stats-row.two {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+button.banner {
+  width: 100%;
+  border: 0;
+  text-align: left;
+  color: inherit;
+}
+
+.streak-num {
+  min-width: 64px;
+  color: var(--accent);
+}
+
+.set-extra {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 6px 0 12px 42px;
+}
+
+.set-extra .toggle-btn {
+  padding: 0 14px;
+}
+
+/* Confirmation after finishing a workout */
+.done-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  animation: fade-out 1.8s ease forwards;
+  pointer-events: none;
+}
+
+.done-badge {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pop 0.45s cubic-bezier(0.2, 1.2, 0.3, 1);
+}
+
+.done-text {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+@keyframes pop {
+  from {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes fade-out {
+  0%,
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .done-badge,
+  .done-overlay {
+    animation: none;
+  }
+}
+
+/* "Einstellungen" is the longest tab label – it may shrink instead of wrapping */
+.tabbar button {
+  font-size: clamp(9px, 2.6vw, 11px);
+  white-space: nowrap;
+}
+
+/* ---------- Own dropdown (Picker) ---------- */
+
+.picker {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: var(--tap);
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-size: 17px;
+  text-align: left;
+}
+
+.picker.big {
+  margin-top: 10px;
+  min-height: 56px;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.picker-arrow {
+  color: var(--text-2);
+}
+
+.picker-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-end;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.picker-panel {
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 20px var(--gutter) calc(var(--safe-bottom) + 20px);
+  border-radius: 20px 20px 0 0;
+  background: var(--bg);
+}
+
+.picker-panel .list-item.on {
+  font-weight: 600;
+}
+
+.flame {
+  font-size: 26px;
+}
+
+.banner.urgent {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* Quiet one-liner with the backup age */
+.backup-line {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 40px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-2);
+  font-size: 14px;
+  text-align: left;
+}
+
+/* ---------- Chin-up app ---------- */
+
+.block {
+  padding: 20px 0;
+  border-top: 1px solid var(--line);
+}
+
+.goal {
+  margin: 0 0 10px;
+  font-size: 15px;
+  color: var(--text-2);
+}
+
+.goal b {
+  color: var(--accent);
+}
+
+.feedback {
+  padding: 18px;
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+}
+
+.feedback p {
+  margin: 0 0 10px;
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+.feedback p:last-child {
+  margin-bottom: 0;
+}
+
+.timeline {
+  border-top: 1px solid var(--line);
+}
+
+.timeline-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 15px;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--text-2);
+  flex: none;
+}
+
+.dot.yes {
+  background: var(--accent);
+}
+
+.running {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: var(--text);
+  color: var(--bg);
+}
