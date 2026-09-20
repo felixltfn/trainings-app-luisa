@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
 import { deflateSync } from 'node:zlib';
 
-const ACCENT = [123, 45, 78];
+const ACCENT = [194, 24, 91];
 
 function crc32(buf) {
   let c;

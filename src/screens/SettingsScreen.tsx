@@ -1,8 +1,9 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useRef, useState } from 'react';
 
+import { Picker } from '../Picker';
 import { exportBackup, importBackup } from '../backup';
-import { db, getMeta } from '../db';
+import { BAND_COLORS, BAND_COLOR_NAMES, db, getMeta } from '../db';
 
 export function SettingsScreen() {
   const [message, setMessage] = useState('');
@@ -32,7 +33,9 @@ export function SettingsScreen() {
     const name = newBand.trim();
     if (!name) return;
     setNewBand('');
-    await db.bands.add({ name, order: bands.length });
+    const used = new Set(bands.map((b) => b.color));
+    const color = BAND_COLORS.find((c) => !used.has(c)) ?? BAND_COLORS[bands.length % BAND_COLORS.length];
+    await db.bands.add({ name, order: bands.length, color });
   };
 
   const renumber = async (list: { id: number }[]) => {
@@ -73,7 +76,14 @@ export function SettingsScreen() {
         <div className="list section-sm">
           {bands.map((b, i) => (
             <div key={b.id} className="list-item">
-              <span className="slot-pos">{i + 1}</span>
+              <span className="band-color">
+                <Picker
+                  title={`Farbe für „${b.name}“`}
+                  value={b.color}
+                  options={BAND_COLORS.map((c) => ({ value: c, label: BAND_COLOR_NAMES[c], color: c }))}
+                  onChange={(v) => db.bands.update(b.id, { color: String(v) })}
+                />
+              </span>
               <input
                 className="input grow"
                 defaultValue={b.name}

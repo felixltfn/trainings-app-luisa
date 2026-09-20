@@ -29,8 +29,9 @@ export function daysBetween(fromIso: string, toIso: string): number {
   return Math.round((parseIsoDate(toIso).getTime() - parseIsoDate(fromIso).getTime()) / 86400000);
 }
 
+// Always dd.mm.yy – short and unmistakable
 export function fmtDate(iso: string): string {
-  return parseIsoDate(iso).toLocaleDateString('de-DE', { day: 'numeric', month: 'long' });
+  return parseIsoDate(iso).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' });
 }
 
 export function fmtMinutes(min: number): string {
@@ -173,75 +174,6 @@ export function buildPlan(sessions: Session[], bands: Band[], today = isoDate(ne
     freeEveryDays,
     nextFreeDate,
   };
-}
-
-// ---------- What she reads right after saving a session ----------
-
-export function sessionFeedback(session: Session, previous: Session[], bands: Band[]): string[] {
-  const all = [...previous, session];
-  const plan = buildPlan(all, bands, session.date);
-  const reps = session.bandSets.map((s) => s.reps);
-  const usedBand = bandOf(bands, sessionBandId(session))?.name ?? 'Band';
-  const lines: string[] = [];
-
-  // Band sets
-  if (plan.thickerHint) {
-    lines.push(
-      `Zweimal hintereinander nur ${Math.max(...reps)} Wiederholungen mit dem Band „${usedBand}“. Nimm nächstes Mal das dickere Band – das ist kein Rückschritt, sondern sorgt dafür, dass du sauber ziehst.`,
-    );
-  } else if (Math.min(...reps) >= BAND_TARGET_TOP) {
-    if (plan.bandName !== usedBand) {
-      lines.push(
-        `Beide Sätze mit ${BAND_TARGET_TOP} Wiederholungen geschafft. Nächstes Mal das dünnere Band „${plan.bandName}“, dann sind wieder ${BAND_TARGET_START} Wiederholungen normal.`,
-      );
-    } else {
-      lines.push(
-        `Beide Sätze mit ${BAND_TARGET_TOP} Wiederholungen am dünnsten Band – das ist die letzte Stufe vor dem freien Chin-Up. Ab jetzt probierst du jede Woche einen freien Versuch.`,
-      );
-    }
-  } else {
-    lines.push(
-      `${reps.join(' und ')} Wiederholungen mit dem Band „${usedBand}“. Nächstes Mal sind ${plan.repTarget} pro Satz dran.`,
-    );
-  }
-
-  // Negatives
-  const doneStep = NEGATIVE_STEPS.find(
-    (s) => session.negativeReps >= s.reps && session.negativeSeconds >= s.seconds,
-  );
-  if (doneStep && (doneStep.reps !== plan.negative.reps || doneStep.seconds !== plan.negative.seconds)) {
-    lines.push(
-      `Beim langsamen Absenken hast du ${session.negativeReps} × ${session.negativeSeconds} Sekunden geschafft. Nächstes Mal ${plan.negative.reps} Wiederholungen mit je ${plan.negative.seconds} Sekunden.`,
-    );
-  } else {
-    lines.push(
-      `Beim langsamen Absenken bleibt das Ziel ${plan.negative.reps} Wiederholungen mit je ${plan.negative.seconds} Sekunden.`,
-    );
-  }
-
-  // Hold
-  if (session.holdSeconds > HOLD_TOP) {
-    lines.push(
-      `Oben ${session.holdSeconds} Sekunden gehalten. Nächstes Mal setzt du tiefer an, mit etwa 90 Grad gebeugten Armen – dann reichen ${HOLD_START} Sekunden.`,
-    );
-  } else {
-    lines.push(`Oben hast du ${session.holdSeconds} Sekunden gehalten. Nächstes Ziel sind ${plan.holdTarget} Sekunden.`);
-  }
-
-  // Free attempt
-  if (session.free) {
-    if (session.free.done) {
-      lines.push('Der freie Versuch hat geklappt. Genau darauf arbeitest du hin – weiter so.');
-    } else {
-      lines.push(
-        `Der freie Versuch hat noch nicht geklappt (${freeHeightLabel(session.free.height)}). Der nächste ist in ${plan.freeEveryDays} Tagen dran.`,
-      );
-    }
-  } else if (plan.freeDue) {
-    lines.push('Beim nächsten Mal ist wieder ein freier Versuch ohne Band dran.');
-  }
-
-  return lines;
 }
 
 export function freeHeightLabel(height: string | null): string {

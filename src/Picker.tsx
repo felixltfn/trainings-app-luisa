@@ -4,6 +4,7 @@ export interface PickerOption {
   value: number | string;
   label: string;
   hint?: string;
+  color?: string; // shown as a dot, so a band is recognised by its colour
 }
 
 interface Props {
@@ -24,6 +25,7 @@ export function Picker({ value, options, onChange, title, placeholder, big }: Pr
   return (
     <>
       <button className={`picker${big ? ' big' : ''}`} onClick={() => setOpen(true)}>
+        {current?.color && <span className="band-dot" style={{ background: current.color }} />}
         <span className="grow">{current?.label ?? placeholder ?? 'Auswählen …'}</span>
         <span className="picker-arrow">▾</span>
       </button>
@@ -42,6 +44,7 @@ export function Picker({ value, options, onChange, title, placeholder, big }: Pr
                     setOpen(false);
                   }}
                 >
+                  {o.color && <span className="band-dot" style={{ background: o.color }} />}
                   <span className="grow">
                     {o.label}
                     {o.hint && (

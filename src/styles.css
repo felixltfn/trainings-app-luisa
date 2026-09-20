@@ -6,8 +6,8 @@
   --text: #0a0a0a;
   --text-2: #6b6b70;
   --line: rgba(0, 0, 0, 0.1);
-  --accent: #7b2d4e;
-  --accent-soft: rgba(123, 45, 78, 0.12);
+  --accent: #c2185b;
+  --accent-soft: rgba(194, 24, 91, 0.12);
   --on-accent: #ffffff;
   --danger: #d70015;
   --gutter: 20px;
@@ -28,10 +28,10 @@
     --text: #f5f5f7;
     --text-2: #98989f;
     --line: rgba(255, 255, 255, 0.12);
-    --accent: #e2809f;
-    --accent-soft: rgba(226, 128, 159, 0.18);
-    /* dark text on the lighter berry reads better than white */
-    --on-accent: #1a060f;
+    --accent: #ff7aa8;
+    --accent-soft: rgba(255, 122, 168, 0.18);
+    /* dark text on the lighter pink reads better than white */
+    --on-accent: #20040f;
     --danger: #ff453a;
   }
 }
@@ -1015,4 +1015,51 @@ button.banner {
   border-radius: 16px;
   background: var(--text);
   color: var(--bg);
+}
+
+/* ---------- Band colours: she recognises the band by its colour ---------- */
+
+.band-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex: none;
+  display: inline-block;
+  vertical-align: -2px;
+  margin-right: 8px;
+}
+
+.band-name {
+  display: inline-flex;
+  align-items: center;
+  font-weight: 600;
+}
+
+.color-chips {
+  display: flex;
+  gap: 8px;
+}
+
+.color-chip {
+  width: 34px;
+  height: 34px;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  padding: 0;
+}
+
+.color-chip.on {
+  border-color: var(--text);
+}
+
+/* The colour picker inside the band list stays narrow */
+.band-color {
+  width: 96px;
+  flex: none;
+}
+
+.band-color .picker {
+  min-height: 44px;
+  padding: 0 10px;
+  font-size: 15px;
 }

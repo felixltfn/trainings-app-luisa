@@ -8,9 +8,6 @@ import { countInWeek, forecastFreeChinUp, weekStreak } from '../stats';
 const axis = { fontSize: 12, fill: 'var(--text-2)' };
 const shortDate = (iso: string) => parseIsoDate(iso).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
 const tooltipDate = (label: unknown) => (typeof label === 'string' ? shortDate(label) : '');
-// The thinner the band, the stronger the colour – so the lines are told apart at a glance.
-const bandColor = (index: number, total: number) =>
-  `color-mix(in srgb, var(--accent) ${Math.round(30 + (60 * index) / Math.max(1, total - 1))}%, var(--text-2))`;
 
 export function StatsScreen() {
   const data = useLiveQuery(async () => {
@@ -79,13 +76,13 @@ export function StatsScreen() {
                   <YAxis tick={axis} tickLine={false} axisLine={false} width={40} allowDecimals={false} />
                   <Tooltip labelFormatter={tooltipDate} />
                   <Legend wrapperStyle={{ fontSize: 13 }} />
-                  {bands.map((b, i) => (
+                  {bands.map((b) => (
                     <Line
                       key={b.id}
                       type="monotone"
                       dataKey={b.name}
                       name={`Band ${b.name}`}
-                      stroke={bandColor(i, bands.length)}
+                      stroke={b.color}
                       strokeWidth={2}
                       connectNulls
                       dot={{ r: 3 }}

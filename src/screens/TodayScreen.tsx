@@ -20,7 +20,7 @@ import { SessionScreen } from './SessionScreen';
 
 export function TodayScreen() {
   const [entering, setEntering] = useState(false);
-  const [feedback, setFeedback] = useState<string[] | null>(null);
+  const [saved, setSaved] = useState(false); // short confirmation after saving
   const [startedAt, setStartedAt] = useState<number | null>(loadStart);
   const [stopping, setStopping] = useState<number | null>(null); // minutes, editable before saving
   const [manual, setManual] = useState(false);
@@ -53,9 +53,10 @@ export function TodayScreen() {
     return (
       <SessionScreen
         onClose={() => setEntering(false)}
-        onSaved={(lines) => {
+        onSaved={() => {
           setEntering(false);
-          setFeedback(lines);
+          setSaved(true);
+          window.setTimeout(() => setSaved(false), 2500);
         }}
       />
     );
@@ -87,6 +88,23 @@ export function TodayScreen() {
     setManual(false);
   };
 
+  // While yoga runs she has put the phone away – nothing about chin-ups on screen
+  if (startedAt && stopping === null) {
+    return (
+      <div className="screen">
+        <p className="label">Yoga läuft</p>
+        <h1 className="title">{fmtClock((now - startedAt) / 1000)}</h1>
+        <p className="muted">
+          Gestartet um {new Date(startedAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}. Die
+          Zeit läuft weiter, auch wenn du die App schließt.
+        </p>
+        <button className="btn block section" onClick={stopYoga}>
+          Stopp
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="screen">
       <p className="label">
@@ -94,30 +112,7 @@ export function TodayScreen() {
       </p>
       <h1 className="title">Heute</h1>
 
-      {feedback && (
-        <div className="feedback section-sm">
-          <p className="label">Für das nächste Mal</p>
-          {feedback.map((line) => (
-            <p key={line}>{line}</p>
-          ))}
-          <div className="row section-sm">
-            {!startedAt && (
-              <button
-                className="btn grow"
-                onClick={() => {
-                  startYoga();
-                  setFeedback(null);
-                }}
-              >
-                Yoga starten
-              </button>
-            )}
-            <button className="btn secondary grow" onClick={() => setFeedback(null)}>
-              Verstanden
-            </button>
-          </div>
-        </div>
-      )}
+      {saved && <p className="banner section-sm">Einheit gespeichert. Die Ziele fürs nächste Mal stehen beim Eintragen.</p>}
 
       <div className="stats-row section">
         <div className="stat">
@@ -147,8 +142,12 @@ export function TodayScreen() {
       <div className="section">
         <p className="label">Chin-Up-Einheit</p>
         <p className="goal">
-          Heute: beide Sätze mit <b>{plan.repTarget}</b> Wiederholungen, Band <b>{plan.bandName}</b>,{' '}
-          <b>{plan.negative.reps}</b> mal langsam ablassen mit je <b>{plan.negative.seconds}</b> Sekunden, oben{' '}
+          Heute: beide Sätze mit <b>{plan.repTarget}</b> Wiederholungen,{' '}
+          <span className="band-name">
+            <span className="band-dot" style={{ background: bands.find((b) => b.id === plan.bandId)?.color }} />
+            {plan.bandName}
+          </span>
+          , <b>{plan.negative.reps}</b> negative Chin-Ups mit je <b>{plan.negative.seconds}</b> Sekunden, oben{' '}
           <b>{plan.holdTarget}</b> Sekunden halten.
           {plan.freeDue && ' Dazu ist ein freier Versuch ohne Band fällig.'}
         </p>
@@ -167,18 +166,6 @@ export function TodayScreen() {
       {/* Yoga */}
       <div className="section">
         <p className="label">Yoga oder Pilates</p>
-
-        {startedAt && stopping === null && (
-          <div className="running section-sm">
-            <div className="grow">
-              <div className="big-num">{fmtClock((now - startedAt) / 1000)}</div>
-              <div className="small">läuft seit {new Date(startedAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}</div>
-            </div>
-            <button className="btn" onClick={stopYoga}>
-              Stopp
-            </button>
-          </div>
-        )}
 
         {stopping !== null && (
           <div className="section-sm">
@@ -217,7 +204,7 @@ export function TodayScreen() {
               Yoga starten
             </button>
             <button className="btn secondary block" onClick={() => setManual(!manual)}>
-              {manual ? 'Abbrechen' : 'Einheit nachtragen'}
+              {manual ? 'Abbrechen' : 'Manuell eintragen'}
             </button>
           </div>
         )}
@@ -250,7 +237,7 @@ export function TodayScreen() {
               className="btn block section-sm"
               onClick={() => saveYoga(Number(manualMinutes) || 0, manualDate)}
             >
-              Nachtragen
+              Eintragen
             </button>
           </div>
         )}

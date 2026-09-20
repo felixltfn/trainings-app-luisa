@@ -1,21 +1,29 @@
 # Chin-Ups & Yoga — Projektregeln
 
 Eigenständige Schwester-App von `../03_TrainingsApp` (für Felix' Freundin). Gleicher Stack,
-eigene Datenbank `chinups`, eigene Farbe (Beere) und eigenes Icon. Kein Backend.
+eigene Datenbank `chinups`, eigene Akzentfarbe (Pink) und eigenes Icon. Kein Backend.
 
 ## Regel 1: Die App gibt die Steigerung vor, nicht die Nutzerin
 
-Alle Regeln stehen in `src/logic.ts` (`buildPlan`, `sessionFeedback`). Texte immer in
-Alltagssprache, ganze Sätze, keine Fachbegriffe wie RIR, Progression oder Volumen.
+Alle Regeln stehen in `src/logic.ts` (`buildPlan`). Die Ziele stehen im Eintrage-Formular
+über jeder Übung – nach dem Speichern gibt es bewusst keine Auswertung. Texte immer in
+Alltagssprache, keine Fachbegriffe wie RIR, Progression oder Volumen.
 
 ## Regel 2: Keine Fachbegriffe, keine Gewichte, keine Pausen
 
 Gewicht, RIR, Pausenzeiten, Übungsalternativen und Trainingstag-Auswahl gibt es hier
 bewusst nicht. Die Einheit ist immer dieselbe.
 
-## Regel 3: Bandnamen sind frei wählbar
+## Regel 3: Bänder erkennt sie an der Farbe
 
-Deshalb nie Adjektive daraus bauen („das dünne Band"), sondern `Band „dünn"` schreiben.
+Jedes Band hat eine Farbe aus `BAND_COLORS` (grell, wie echte Bänder). Farbpunkt überall
+mitzeigen: Auswahl, Tagesziel, Einstellungen, Diagrammlinien. Namen sind frei wählbar,
+deshalb nie Adjektive daraus bauen, sondern Farbe + Name nennen.
+
+## Regel 3b: Sekunden beim Ablassen kommen aus der Stufenleiter
+
+Sie trägt bei den negativen Chin-Ups nur die Wiederholungen ein; gespeichert wird die
+Sekundenzahl der aktuellen Stufe (`plan.negative.seconds`).
 
 ## Regel 4: Yoga-Timer rechnet mit Zeitstempeln
 

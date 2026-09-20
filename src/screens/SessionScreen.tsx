@@ -2,12 +2,12 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useState } from 'react';
 
 import { Picker } from '../Picker';
-import { db, type Band, type FreeHeight, type Session } from '../db';
-import { BAND_TARGET_TOP, buildPlan, isoDate, sessionFeedback } from '../logic';
+import { BAND_COLOR_NAMES, db, type Band, type FreeHeight, type Session } from '../db';
+import { BAND_TARGET_TOP, buildPlan, fmtDate, isoDate } from '../logic';
 
 interface Props {
   onClose: () => void;
-  onSaved: (feedback: string[]) => void;
+  onSaved: () => void;
 }
 
 const HEIGHTS: { value: FreeHeight; label: string }[] = [
@@ -24,10 +24,10 @@ export function SessionScreen({ onClose, onSaved }: Props) {
   }, []);
 
   const [hang, setHang] = useState(false);
+  const [hangSeconds, setHangSeconds] = useState('');
   const [reps, setReps] = useState(['', '']);
   const [bandId, setBandId] = useState<number | null>(null);
   const [negReps, setNegReps] = useState('');
-  const [negSeconds, setNegSeconds] = useState('');
   const [hold, setHold] = useState('');
   const [freeTried, setFreeTried] = useState(false);
   const [freeDone, setFreeDone] = useState(false);
@@ -53,8 +53,8 @@ export function SessionScreen({ onClose, onSaved }: Props) {
       setError('Wähle das Band aus, mit dem du gezogen hast.');
       return;
     }
-    if (num(negReps) <= 0 || num(negSeconds) <= 0) {
-      setError('Beim langsamen Absenken fehlen noch die Wiederholungen oder die Sekunden.');
+    if (num(negReps) <= 0) {
+      setError('Trag ein, wie viele negative Chin-Ups du geschafft hast.');
       return;
     }
     if (num(hold) <= 0) {
@@ -66,19 +66,23 @@ export function SessionScreen({ onClose, onSaved }: Props) {
       date: isoDate(new Date()),
       timestamp: Date.now(),
       hang,
+      hangSeconds: hang && num(hangSeconds) > 0 ? num(hangSeconds) : null,
       bandSets: reps.map((r) => ({ reps: num(r), bandId: chosenBand })),
       negativeReps: num(negReps),
-      negativeSeconds: num(negSeconds),
+      // The seconds come from the current step of the ladder – she only counts the reps
+      negativeSeconds: plan.negative.seconds,
       holdSeconds: num(hold),
       free: freeTried ? { done: freeDone, height: freeDone ? null : freeHeight } : null,
     };
-    const id = await db.sessions.add(session);
-    onSaved(sessionFeedback({ ...session, id }, sessions, bands));
+    await db.sessions.add(session);
+    onSaved();
   };
 
+  const planBand = bands.find((b) => b.id === plan.bandId);
   const bandOptions = bands.map((b: Band, i) => ({
     value: b.id,
-    label: b.name,
+    label: `${BAND_COLOR_NAMES[b.color] ?? 'Band'} · ${b.name}`,
+    color: b.color,
     hint: i === 0 ? 'hilft am meisten' : i === bands.length - 1 ? 'hilft am wenigsten' : undefined,
   }));
 
@@ -106,6 +110,20 @@ export function SessionScreen({ onClose, onSaved }: Props) {
             <input type="checkbox" checked={hang} onChange={(e) => setHang(e.target.checked)} />
             An der Stange gehangen
           </label>
+          {hang && (
+            <label className="field">
+              <span>Wie lange? (Sekunden, freiwillig)</span>
+              <input
+                className="num-input"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                placeholder="z. B. 20"
+                value={hangSeconds}
+                onChange={(e) => setHangSeconds(e.target.value)}
+                onFocus={(e) => e.target.select()}
+              />
+            </label>
+          )}
         </section>
 
         {/* Free attempt */}
@@ -114,7 +132,7 @@ export function SessionScreen({ onClose, onSaved }: Props) {
           <p className="goal">
             {plan.freeDue
               ? 'Heute fällig: ein Versuch, direkt nach dem Hang.'
-              : `Erst wieder am ${plan.nextFreeDate ?? '–'} dran – du kannst ihn aber jederzeit machen.`}
+              : `Erst wieder am ${plan.nextFreeDate ? fmtDate(plan.nextFreeDate) : '–'} dran – du kannst ihn aber jederzeit machen.`}
           </p>
           <label className="check">
             <input type="checkbox" checked={freeTried} onChange={(e) => setFreeTried(e.target.checked)} />
@@ -149,8 +167,12 @@ export function SessionScreen({ onClose, onSaved }: Props) {
         <section className="block">
           <p className="label">1 · Chin-Ups mit Band</p>
           <p className="goal">
-            Ziel: beide Sätze mit <b>{plan.repTarget}</b> Wiederholungen, Band <b>{plan.bandName}</b>.
-            {plan.thickerHint && ' Nimm heute das dickere Band – damit ziehst du sauberer.'}
+            Ziel: beide Sätze mit <b>{plan.repTarget}</b> Wiederholungen,{' '}
+            <span className="band-name">
+              <span className="band-dot" style={{ background: planBand?.color }} />
+              {plan.bandName}
+            </span>
+            .{plan.thickerHint && ' Nimm heute das dickere Band – damit ziehst du sauberer.'}
           </p>
           <div className="field">
             <span>Band</span>
@@ -181,37 +203,23 @@ export function SessionScreen({ onClose, onSaved }: Props) {
 
         {/* 2 – negatives */}
         <section className="block">
-          <p className="label">2 · Langsam ablassen</p>
+          <p className="label">2 · Negative Chin-Ups</p>
           <p className="goal">
-            Ziel: <b>{plan.negative.reps}</b> Wiederholungen, dabei <b>{plan.negative.seconds}</b> Sekunden nach
-            unten brauchen.
+            Ziel: <b>{plan.negative.reps}</b> Stück, dabei jeweils <b>{plan.negative.seconds}</b> Sekunden lang nach
+            unten.
           </p>
-          <div className="pair">
-            <label className="field">
-              <span>Wiederholungen</span>
-              <input
-                className="num-input"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                placeholder="0"
-                value={negReps}
-                onChange={(e) => setNegReps(e.target.value)}
-                onFocus={(e) => e.target.select()}
-              />
-            </label>
-            <label className="field">
-              <span>Sekunden pro Stück</span>
-              <input
-                className="num-input"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                placeholder="0"
-                value={negSeconds}
-                onChange={(e) => setNegSeconds(e.target.value)}
-                onFocus={(e) => e.target.select()}
-              />
-            </label>
-          </div>
+          <label className="field">
+            <span>Geschaffte Wiederholungen</span>
+            <input
+              className="num-input"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              placeholder="0"
+              value={negReps}
+              onChange={(e) => setNegReps(e.target.value)}
+              onFocus={(e) => e.target.select()}
+            />
+          </label>
         </section>
 
         {/* 3 – hold */}

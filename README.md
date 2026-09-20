@@ -4,7 +4,7 @@ Eine kleine Web-App (PWA) für das Chin-Up-Training und die Yoga-Einheiten. Sie 
 
 **Alle Daten bleiben auf dem Gerät.** Kein Konto, kein Server. Wird die App gelöscht, sind die Einträge weg — dafür gibt es den Backup-Export.
 
-Eigenständige Schwester von `03_TrainingsApp`: gleicher Stack (Vite + React + TypeScript, Dexie/IndexedDB, Recharts, vite-plugin-pwa), eigene Datenbank (`chinups`), eigene Farbe, eigenes Icon.
+Eigenständige Schwester von `03_TrainingsApp`: gleicher Stack (Vite + React + TypeScript, Dexie/IndexedDB, Recharts, vite-plugin-pwa), eigene Datenbank (`chinups`), Pink als Akzentfarbe, eigenes Icon. Die Bänder haben eigene, grelle Farben (grün, rot, orange, gelb …), an denen sie das Band erkennt.
 
 ---
 
@@ -26,18 +26,18 @@ Dreimal pro Woche, immer dieselbe Reihenfolge:
 
 | # | Übung | Eingabe |
 | --- | --- | --- |
-| 0 | An der Stange hängen (freiwillig) | nur abhaken |
+| 0 | An der Stange hängen (freiwillig) | abhaken, optional Sekunden |
 | – | Freier Versuch ohne Band (alle 14 Tage) | geschafft / nicht geschafft + erreichte Höhe |
 | 1 | Chin-Ups mit Band, 2 Sätze | Wiederholungen + Band |
-| 2 | Langsam ablassen, 1 Satz | Wiederholungen + Sekunden |
+| 2 | Negative Chin-Ups, 1 Satz | nur Wiederholungen (Sekunden gibt die Stufe vor) |
 | 3 | Oben halten, 1 Satz | Sekunden |
 
 Danach steht der Yoga-Start bereit. Die Yoga-Zeit läuft mit Zeitstempeln, sie übersteht also das Weglegen und Schließen der App. Wer das Stoppen vergisst, kann die Dauer vor dem Speichern überschreiben. Einheiten lassen sich auch ohne Chin-Ups starten oder per Datum und Minuten nachtragen.
 
-**Die App gibt die Steigerung vor.** Nach jeder Einheit steht in normalen Sätzen da, was beim nächsten Mal dran ist:
+**Die App gibt die Steigerung vor.** Über jeder Übung steht beim Eintragen, was diesmal dran ist:
 
 - **Band:** Beide Sätze mit 6 Wiederholungen → nächstes Mal das dünnere Band, Ziel wieder 3. Zweimal hintereinander nur 2 Wiederholungen → Hinweis auf das dickere Band (ausdrücklich kein Rückschritt). Sonst: gleiches Band, eine Wiederholung mehr.
-- **Langsam ablassen:** Stufenleiter 3 × 5 s → 4 × 5 s → 3 × 8 s → 4 × 8 s.
+- **Negative Chin-Ups:** Stufenleiter 3 × 5 s → 4 × 5 s → 3 × 8 s → 4 × 8 s. Die Sekunden gibt die App vor, eingetragen werden nur die Wiederholungen.
 - **Oben halten:** über 20 Sekunden → nächstes Mal tiefer ansetzen (etwa 90 Grad gebeugte Arme), Ziel wieder 10 Sekunden.
 - **Freier Versuch:** alle 14 Tage, wöchentlich sobald am dünnsten Band zweimal 6 Wiederholungen stehen.
 
