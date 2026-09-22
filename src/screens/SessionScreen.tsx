@@ -1,14 +1,23 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Picker } from '../Picker';
 import { BAND_COLOR_NAMES, db, type Band, type FreeHeight, type Session } from '../db';
-import { BAND_TARGET_TOP, buildPlan, fmtDate, isoDate, parseIsoDate } from '../logic';
+import { BAND_TARGET_TOP, buildPlan, fmtClock, fmtDate, isoDate, parseIsoDate } from '../logic';
 
 interface Props {
   date?: string; // when entered from the calendar for another day
   onClose: () => void;
   onSaved: () => void;
+}
+
+// Rest after each band set: before set 2 and before the negatives. Nothing else is timed.
+const REST_SECONDS = 120;
+const REST_NEXT = ['Satz 2', 'die negativen Chin-Ups'];
+
+interface Rest {
+  after: number; // index of the band set that was just entered
+  endsAt: number; // timestamp – iOS pauses JavaScript when the phone is put away
 }
 
 const HEIGHTS: { value: FreeHeight; label: string }[] = [
@@ -35,6 +44,8 @@ export function SessionScreen({ date, onClose, onSaved }: Props) {
   const [freeDone, setFreeDone] = useState(false);
   const [freeHeight, setFreeHeight] = useState<FreeHeight>('half');
   const [error, setError] = useState('');
+  const [rest, setRest] = useState<Rest | null>(null);
+  const [restedAfter, setRestedAfter] = useState<number[]>([]); // each set starts its pause only once
 
   if (!data) return <div className="screen" />;
   const { bands, sessions } = data;
@@ -77,6 +88,13 @@ export function SessionScreen({ date, onClose, onSaved }: Props) {
     };
     await db.sessions.add(session);
     onSaved();
+  };
+
+  // Only live training gets a pause, not entries for another day from the calendar
+  const startRest = (set: number) => {
+    if (date || num(reps[set]) <= 0 || restedAfter.includes(set)) return;
+    setRestedAfter([...restedAfter, set]);
+    setRest({ after: set, endsAt: Date.now() + REST_SECONDS * 1000 });
   };
 
   const planBand = bands.find((b) => b.id === plan.bandId);
@@ -197,6 +215,7 @@ export function SessionScreen({ date, onClose, onSaved }: Props) {
                   value={value}
                   onChange={(e) => setReps(reps.map((r, j) => (i === j ? e.target.value : r)))}
                   onFocus={(e) => e.target.select()}
+                  onBlur={() => startRest(i)}
                 />
               </label>
             ))}
@@ -273,6 +292,41 @@ export function SessionScreen({ date, onClose, onSaved }: Props) {
           heißt, dass du kurz davor bist.
         </p>
       </div>
+      {rest && <RestBar rest={rest} onClose={() => setRest(null)} />}
+    </div>
+  );
+}
+
+function RestBar({ rest, onClose }: { rest: Rest; onClose: () => void }) {
+  const [now, setNow] = useState(Date.now());
+  const left = Math.ceil((rest.endsAt - now) / 1000);
+  const done = left <= 0;
+
+  useEffect(() => {
+    const tick = () => setNow(Date.now());
+    const id = window.setInterval(tick, 250);
+    document.addEventListener('visibilitychange', tick);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener('visibilitychange', tick);
+    };
+  }, []);
+
+  // Android buzzes, iOS ignores it – there the bar itself changes colour
+  useEffect(() => {
+    if (done) navigator.vibrate?.([200, 100, 200]);
+  }, [done]);
+
+  return (
+    <div className={`rest-bar${done ? ' done' : ''}`} role="timer" aria-live={done ? 'assertive' : 'off'}>
+      <div className="rest-progress" style={{ transform: `scaleX(${done ? 1 : 1 - left / REST_SECONDS})` }} />
+      <div className="grow">
+        <p className="rest-title">{done ? 'Pause vorbei' : `Pause ${fmtClock(left)}`}</p>
+        <p className="small">{done ? `Weiter mit ${REST_NEXT[rest.after]}.` : `Danach ${REST_NEXT[rest.after]}.`}</p>
+      </div>
+      <button className="btn" onClick={onClose}>
+        {done ? 'Los' : 'Überspringen'}
+      </button>
     </div>
   );
 }

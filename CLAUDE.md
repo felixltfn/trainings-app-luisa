@@ -9,10 +9,12 @@ Alle Regeln stehen in `src/logic.ts` (`buildPlan`). Die Ziele stehen im Eintrage
 über jeder Übung – nach dem Speichern gibt es bewusst keine Auswertung. Texte immer in
 Alltagssprache, keine Fachbegriffe wie RIR, Progression oder Volumen.
 
-## Regel 2: Keine Fachbegriffe, keine Gewichte, keine Pausen
+## Regel 2: Keine Fachbegriffe, keine Gewichte
 
-Gewicht, RIR, Pausenzeiten, Übungsalternativen und Trainingstag-Auswahl gibt es hier
-bewusst nicht. Die Einheit ist immer dieselbe.
+Gewicht, RIR, Übungsalternativen und Trainingstag-Auswahl gibt es hier bewusst nicht. Die Einheit
+ist immer dieselbe. Einzige Pause: 2 Minuten nach jedem Band-Satz (vor Satz 2 und vor den Negativen),
+startet automatisch beim Eintragen der Wiederholungen (`RestBar` in `SessionScreen.tsx`, rechnet mit
+Zeitstempel). Sonst keine Timer, nicht bei Einträgen für andere Tage.
 
 ## Regel 3: Bänder erkennt sie an der Farbe
 
