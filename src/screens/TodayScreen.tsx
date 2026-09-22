@@ -1,7 +1,8 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useState } from 'react';
 
-import { db } from '../db';
+import { DEFAULT_BODYWEIGHT, db, getMeta } from '../db';
+import { potionLevel } from '../gamification';
 import {
   BIG_GOAL_DATE,
   WEEKLY_GOAL,
@@ -14,8 +15,9 @@ import {
   isoDate,
   weekStart,
 } from '../logic';
-import { countInWeek } from '../stats';
+import { countInWeek, weekStreak } from '../stats';
 import { loadStart, minutesSince, saveStart } from '../yogaTimer';
+import { ChamberCard, PotionCard, StreakBanner } from './Rewards';
 import { SessionScreen } from './SessionScreen';
 
 export function TodayScreen() {
@@ -32,7 +34,8 @@ export function TodayScreen() {
     const bands = (await db.bands.toArray()).sort((a, b) => a.order - b.order);
     const sessions = await db.sessions.toArray();
     const yoga = await db.yoga.toArray();
-    return { bands, sessions, yoga };
+    const bodyweight = (await getMeta<number>('bodyweight')) ?? DEFAULT_BODYWEIGHT;
+    return { bands, sessions, yoga, bodyweight };
   }, []);
 
   // The running yoga timer is recomputed from its start time, so closing the app is fine
@@ -47,7 +50,7 @@ export function TodayScreen() {
   }, []);
 
   if (!data) return <div className="screen" />;
-  const { bands, sessions, yoga } = data;
+  const { bands, sessions, yoga, bodyweight } = data;
 
   if (entering) {
     return (
@@ -134,6 +137,14 @@ export function TodayScreen() {
       </p>
       <h1 className="title">Heute</h1>
 
+      <div className="section">
+        <StreakBanner
+          chinStreak={weekStreak(sessions.map((s) => s.date))}
+          yogaStreak={weekStreak(yoga.map((y) => y.date))}
+          chinThisWeek={chinThisWeek}
+        />
+      </div>
+
       <div className="stats-row section">
         <div className="stat">
           <p className="label">Chin-Ups</p>
@@ -161,16 +172,56 @@ export function TodayScreen() {
       {/* Chin-up session */}
       <div className="section">
         <p className="label">Chin-Up-Einheit</p>
-        <p className="goal">
-          Heute: beide Sätze mit <b>{plan.repTarget}</b> Wiederholungen,{' '}
-          <span className="band-name">
-            <span className="band-dot" style={{ background: bands.find((b) => b.id === plan.bandId)?.color }} />
-            {plan.bandName}
-          </span>
-          , <b>{plan.negative.reps}</b> negative Chin-Ups mit je <b>{plan.negative.seconds}</b> Sekunden, oben{' '}
-          <b>{plan.holdTarget}</b> Sekunden halten.
-          {plan.freeDue && ' Dazu ist ein freier Versuch ohne Band fällig.'}
-        </p>
+        <ol className="plan-list">
+          <li>
+            <span className="plan-step">1</span>
+            <span className="plan-what">
+              Zwei Sätze mit Band
+              <span className="band-name plan-sub">
+                <span className="band-dot" style={{ background: bands.find((b) => b.id === plan.bandId)?.color }} />
+                {plan.bandName}
+              </span>
+            </span>
+            <span className="plan-value">
+              {plan.repTarget}
+              <small>× je Satz</small>
+            </span>
+          </li>
+          <li>
+            <span className="plan-step">2</span>
+            <span className="plan-what">
+              Negative Chin-Ups
+              <span className="plan-sub">je {plan.negative.seconds} Sekunden ablassen</span>
+            </span>
+            <span className="plan-value">
+              {plan.negative.reps}
+              <small>×</small>
+            </span>
+          </li>
+          <li>
+            <span className="plan-step">3</span>
+            <span className="plan-what">
+              Oben halten
+              <span className="plan-sub">Kinn über der Stange</span>
+            </span>
+            <span className="plan-value">
+              {plan.holdTarget}
+              <small>Sek.</small>
+            </span>
+          </li>
+          {plan.freeDue && (
+            <li>
+              <span className="plan-step">4</span>
+              <span className="plan-what">
+                Freier Versuch
+                <span className="plan-sub">ohne Band, einmal probieren</span>
+              </span>
+              <span className="plan-value">
+                1<small>×</small>
+              </span>
+            </li>
+          )}
+        </ol>
         <button className="btn block" onClick={() => setEntering(true)}>
           Chin-Ups eintragen
         </button>
@@ -268,6 +319,15 @@ export function TodayScreen() {
             {fmtMinutes([...yoga].sort((a, b) => a.date.localeCompare(b.date)).pop()!.minutes)}
           </p>
         )}
+      </div>
+
+      {/* Rewards: the chamber grows with every session, the flask fills with strength */}
+      <div className="section">
+        <p className="label">Deine Kammer</p>
+        <div className="rewards">
+          <ChamberCard units={sessions.length + yoga.length} />
+          <PotionCard level={potionLevel(sessions, bands, bodyweight)} />
+        </div>
       </div>
     </div>
   );

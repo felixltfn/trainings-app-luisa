@@ -1158,3 +1158,254 @@ button.banner {
 .day-entry p {
   margin: 0 0 6px;
 }
+
+/* ---------- Today's plan as a numbered list ---------- */
+
+.plan-list {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+  border-top: 1px solid var(--line);
+}
+
+.plan-list li {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.plan-step {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 26px;
+  text-align: center;
+}
+
+.plan-what {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.plan-sub {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text-2);
+}
+
+.plan-sub.band-name {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.plan-value {
+  flex: none;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--accent-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.plan-value small {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--text-2);
+}
+
+/* ---------- Streak ---------- */
+
+.streak {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.streak.lit {
+  background: var(--accent-soft);
+}
+
+.streak p {
+  margin: 0;
+}
+
+.streak-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 2px !important;
+}
+
+.streak-flame {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  fill: var(--text-2);
+  opacity: 0.5;
+}
+
+.streak.lit .streak-flame {
+  fill: var(--accent);
+  opacity: 1;
+  animation: flicker 2.4s ease-in-out infinite;
+  transform-origin: 50% 90%;
+}
+
+@keyframes flicker {
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+  40% {
+    transform: scale(1.06, 0.97) rotate(-2deg);
+  }
+  70% {
+    transform: scale(0.97, 1.04) rotate(2deg);
+  }
+}
+
+/* ---------- Rewards: chamber and strength flask ---------- */
+
+.rewards {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.reward {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+  padding: 12px;
+  border: 0;
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+}
+
+.reward:active {
+  opacity: 0.85;
+}
+
+.reward-num {
+  margin-top: 6px;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.chamber-img,
+.potion-img {
+  position: relative;
+  width: 100%;
+}
+
+.chamber-img {
+  aspect-ratio: 1;
+}
+
+.potion-img {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chamber-img img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Not yet awake: pale clay, no colour */
+.chamber-base {
+  filter: grayscale(1) contrast(0.8) brightness(1.08);
+  opacity: 0.6;
+}
+
+.chamber-color {
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+/* A soft pulse on the newest object */
+.chamber-spark {
+  position: absolute;
+  width: 14%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 2px var(--accent);
+  animation: spark 2.2s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes spark {
+  0% {
+    opacity: 0.9;
+    transform: translate(-50%, -50%) scale(0.4);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.2);
+  }
+}
+
+.potion-img {
+  aspect-ratio: 382 / 640;
+  max-height: 100%;
+}
+
+.potion-img img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* The flask without liquid: faint glass outline */
+.potion-empty {
+  filter: grayscale(1) brightness(1.2);
+  opacity: 0.35;
+}
+
+.potion-liquid {
+  transition: clip-path 1.2s ease-out;
+}
+
+.sheet .chamber-img {
+  max-width: 560px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .streak.lit .streak-flame,
+  .chamber-spark {
+    animation: none;
+  }
+}

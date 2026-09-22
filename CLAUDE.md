@@ -34,3 +34,11 @@ JavaScript, wenn das Handy weggelegt wird — die Dauer wird immer aus der Uhr b
 
 Manifest und Icons nie in den Service-Worker-Cache; keine nativen `<select>`, `alert()`
 oder `prompt()` (dafür `src/Picker.tsx` und Inline-Meldungen).
+
+## Regel 6: Belohnung im 3D-Miniatur-Look
+
+`src/gamification.ts` + `src/screens/Rewards.tsx`. Die Kammer (`public/chamber.webp`) färbt pro Einheit
+(Chin-Ups + Yoga) ein Ding ein – Positionen in `CHAMBER_SPOTS`, auf das Bild vermessen. Das
+Kraft-Fläschchen (`public/potion.webp`) zeigt geschätzte Kraft ÷ Körpergewicht. Neue Bilder immer
+als heller 3D-Clay-Render auf freigestelltem Hintergrund (passt zum App-Look), keine dunklen Fotos;
+wird ein Bild getauscht, müssen Spots und `POTION_*`-Grenzen neu vermessen werden.
