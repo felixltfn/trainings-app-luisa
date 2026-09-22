@@ -1,9 +1,9 @@
-// Generates the PNG app icons without extra dependencies: a plain accent square with a white dumbbell.
+// Generates the PNG app icons without extra dependencies: a plain red square with a white figure on a pull-up bar.
 import { execFileSync } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
 import { deflateSync } from 'node:zlib';
 
-const ACCENT = [249, 100, 234];
+const ACCENT = [227, 11, 11];
 
 function crc32(buf) {
   let c;
@@ -42,7 +42,7 @@ function png(size) {
   for (let y = 0; y < size; y++) {
     raw[y * (size * 3 + 1)] = 0;
     for (let x = 0; x < size; x++) {
-      const px = isWhite(x, y, size) ? [43, 10, 39] : ACCENT;
+      const px = isWhite(x, y, size) ? [255, 255, 255] : ACCENT;
       raw.set(px, y * (size * 3 + 1) + 1 + x * 3);
     }
   }
@@ -70,11 +70,11 @@ function write(path, size) {
   }
 }
 
-write('public/icon-192-v2.png', 192);
-write('public/icon-512-v2.png', 512);
+write('public/icon-192-v3.png', 192);
+write('public/icon-512-v3.png', 512);
 // iOS picks the icon when the page is added to the home screen – offer every common size
-write('public/apple-touch-icon-v2.png', 180);
-write('public/apple-touch-icon-167-v2.png', 167);
-write('public/apple-touch-icon-152-v2.png', 152);
-write('public/apple-touch-icon-120-v2.png', 120);
+write('public/apple-touch-icon-v3.png', 180);
+write('public/apple-touch-icon-167-v3.png', 167);
+write('public/apple-touch-icon-152-v3.png', 152);
+write('public/apple-touch-icon-120-v3.png', 120);
 console.log('Icons written to public/');

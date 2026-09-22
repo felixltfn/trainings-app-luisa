@@ -1,7 +1,7 @@
 # Chin-Ups & Yoga — Projektregeln
 
 Eigenständige Schwester-App von `../03_TrainingsApp` (für Felix' Freundin). Gleicher Stack,
-eigene Datenbank `chinups`, eigene Akzentfarbe (Pink) und eigenes Icon. Kein Backend.
+eigene Datenbank `chinups`, eigene Akzentfarbe (Rot #E30B0B), eigener Name „Training“ und eigenes Icon. Kein Backend.
 
 ## Regel 1: Die App gibt die Steigerung vor, nicht die Nutzerin
 
