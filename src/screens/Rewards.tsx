@@ -166,8 +166,7 @@ const days = (n: number) => (n === 1 ? '1 Trainingstag' : `${n} Trainingstage`);
 
 export function ChamberCard({ pieces }: { pieces: number }) {
   const [open, setOpen] = useState(false);
-  const [testExtra, setTestExtra] = useState(0); // dev only: click through the pieces
-  const { count, complete } = chamberState(pieces + testExtra);
+  const { count, complete } = chamberState(pieces);
   const left = CHAMBER_PIECES - count;
 
   const caption = complete
@@ -205,18 +204,8 @@ export function ChamberCard({ pieces }: { pieces: number }) {
                 : `Noch ${days(left)}, dann siehst du das ganze Bild.`}
             </p>
             <div className="section-sm">
-              <ChamberPicture count={count} reveal={testExtra > 0} />
+              <ChamberPicture count={count} />
             </div>
-            {import.meta.env.DEV && (
-              <div className="row section-sm">
-                <button className="btn secondary" onClick={() => setTestExtra((n) => n + 1)} disabled={complete}>
-                  Test: +1 Teil
-                </button>
-                <button className="btn ghost" onClick={() => setTestExtra(0)} disabled={testExtra === 0}>
-                  Zurücksetzen
-                </button>
-              </div>
-            )}
           </div>
         </div>
       )}
