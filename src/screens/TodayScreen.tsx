@@ -321,9 +321,9 @@ export function TodayScreen() {
         )}
       </div>
 
-      {/* Rewards: the chamber grows with every session, the flask fills with strength */}
+      {/* Rewards: the island grows with every session, the flask fills with strength */}
       <div className="section">
-        <p className="label">Deine Kammer</p>
+        <p className="label">Deine Insel</p>
         <div className="rewards">
           <ChamberCard units={sessions.length + yoga.length} />
           <PotionCard level={potionLevel(sessions, bands, bodyweight)} />

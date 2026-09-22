@@ -14,7 +14,7 @@ export default defineConfig({
       // Manifest and icons must never come from the offline cache: iOS reads them
       // when the app is added to the home screen, and a stale copy breaks the icon.
       workbox: {
-        globPatterns: ['**/*.{js,css,html,webp}'], // webp = chamber and flask, needed offline
+        globPatterns: ['**/*.{js,css,html,webp}', 'chamber-pieces.png'], // reward images, needed offline
         globIgnores: ['**/manifest.webmanifest', '**/icon-*.png', '**/apple-touch-icon*.png'],
         runtimeCaching: [
           {

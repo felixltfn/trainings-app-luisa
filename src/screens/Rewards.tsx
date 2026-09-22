@@ -1,10 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
-import { CHAMBER_SPOTS, POTION_NECK, chamberMask, chamberState, potionSurface } from '../gamification';
+import { CHAMBER_PIECES, PIECE_STEP, chamberState, potionSurface } from '../gamification';
 import { WEEKLY_GOAL } from '../logic';
 
-const CHAMBER_SRC = `${import.meta.env.BASE_URL}chamber.webp`;
-const POTION_SRC = `${import.meta.env.BASE_URL}potion.webp`;
+const asset = (name: string) => `${import.meta.env.BASE_URL}${name}`;
 
 const weeks = (n: number) => (n === 1 ? '1 Woche' : `${n} Wochen`);
 
@@ -38,45 +37,116 @@ export function StreakBanner({ chinStreak, yogaStreak, chinThisWeek }: StreakPro
   );
 }
 
-// ---------- Chamber ----------
+// ---------- Island ----------
+
+interface ChamberSource {
+  pixels: Uint8ClampedArray; // RGBA of the finished picture
+  pieces: Uint8Array; // per pixel: the session number that brings it, 0 = empty
+  size: number;
+}
+
+let chamberSource: Promise<ChamberSource> | null = null;
+
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error(`Bild konnte nicht geladen werden: ${src}`));
+    img.src = src;
+  });
+}
+
+function readPixels(img: HTMLImageElement, size: number): Uint8ClampedArray {
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  if (!ctx) throw new Error('Canvas wird nicht unterstützt');
+  ctx.drawImage(img, 0, 0, size, size);
+  return ctx.getImageData(0, 0, size, size).data;
+}
+
+// Loaded once, shared by the card and the full-screen view
+function loadChamber(): Promise<ChamberSource> {
+  chamberSource ??= Promise.all([loadImage(asset('chamber.webp')), loadImage(asset('chamber-pieces.png'))]).then(
+    ([picture, map]) => {
+      const size = map.naturalWidth;
+      const mapPixels = readPixels(map, size);
+      const pieces = new Uint8Array(size * size);
+      for (let i = 0; i < pieces.length; i++) pieces[i] = Math.round(mapPixels[i * 4] / PIECE_STEP);
+      return { pixels: readPixels(picture, size), pieces, size };
+    },
+  );
+  return chamberSource;
+}
+
+// Draws only the pieces that match `keep`; everything else stays transparent
+function paint(canvas: HTMLCanvasElement, source: ChamberSource, keep: (piece: number) => boolean) {
+  canvas.width = source.size;
+  canvas.height = source.size;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  const out = ctx.createImageData(source.size, source.size);
+  for (let i = 0; i < source.pieces.length; i++) {
+    const piece = source.pieces[i];
+    if (piece === 0 || !keep(piece)) continue;
+    const p = i * 4;
+    out.data[p] = source.pixels[p];
+    out.data[p + 1] = source.pixels[p + 1];
+    out.data[p + 2] = source.pixels[p + 2];
+    out.data[p + 3] = source.pixels[p + 3];
+  }
+  ctx.putImageData(out, 0, 0);
+}
+
+function ChamberPicture({ count }: { count: number }) {
+  const island = useRef<HTMLCanvasElement>(null);
+  const newest = useRef<HTMLCanvasElement>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    loadChamber()
+      .then((source) => {
+        if (!alive || !island.current || !newest.current) return;
+        paint(island.current, source, (piece) => piece < count);
+        paint(newest.current, source, (piece) => piece === count);
+      })
+      .catch((e: unknown) => setError(e instanceof Error ? e.message : 'Bild konnte nicht geladen werden'));
+    return () => {
+      alive = false;
+    };
+  }, [count]);
+
+  if (error) return <p className="small muted">{error}</p>;
+
+  return (
+    <div className="chamber-img">
+      {count === 0 && <span className="chamber-empty">Hier entsteht etwas</span>}
+      <canvas ref={island} role="img" aria-label={`Deine Insel, ${count} von ${CHAMBER_PIECES} Teilen`} />
+      <canvas ref={newest} className="chamber-new" aria-hidden="true" />
+    </div>
+  );
+}
 
 export function ChamberCard({ units }: { units: number }) {
   const [open, setOpen] = useState(false);
-  const state = chamberState(units);
-  const mask = chamberMask(state.revealed);
+  const { count, complete } = chamberState(units);
+  const left = CHAMBER_PIECES - count;
 
-  const picture = (
-    <div className="chamber-img">
-      <img className="chamber-base" src={CHAMBER_SRC} alt="" />
-      <img
-        className="chamber-color"
-        src={CHAMBER_SRC}
-        alt={`Deine Kammer, ${state.revealed.length} von ${CHAMBER_SPOTS.length} Dingen erwacht`}
-        style={state.complete ? undefined : { WebkitMaskImage: mask, maskImage: mask }}
-      />
-      {state.newest && !state.complete && (
-        <span
-          className="chamber-spark"
-          style={{ left: `${state.newest.x}%`, top: `${state.newest.y}%` }}
-          aria-hidden="true"
-        />
-      )}
-    </div>
-  );
-
-  const caption = state.complete
-    ? 'Die Kammer ist vollständig.'
-    : state.newest
-      ? `Neu: ${state.newest.name}`
-      : 'Mit jeder Einheit erwacht ein Ding.';
+  const caption = complete
+    ? 'Das Bild ist vollständig.'
+    : count === 0
+      ? 'Jede Einheit bringt ein Teil.'
+      : 'Das neueste Teil leuchtet.';
 
   return (
     <>
       <button className="reward chamber" onClick={() => setOpen(true)}>
-        {picture}
+        <ChamberPicture count={count} />
         <span className="reward-num">
-          {state.revealed.length}
-          <span className="muted"> / {CHAMBER_SPOTS.length}</span>
+          {count}
+          <span className="muted"> / {CHAMBER_PIECES}</span>
         </span>
         <span className="small muted">{caption}</span>
       </button>
@@ -87,15 +157,19 @@ export function ChamberCard({ units }: { units: number }) {
             <button className="back" onClick={() => setOpen(false)}>
               ‹ Zurück
             </button>
-            <p className="label section-sm">Deine Kammer</p>
+            <p className="label section-sm">Deine Insel</p>
             <h1 className="title">
-              {state.revealed.length} von {CHAMBER_SPOTS.length}
+              {count} von {CHAMBER_PIECES}
             </h1>
             <p className="muted">
-              Jede Einheit – Chin-Ups oder Yoga – erweckt ein Ding in der Kammer zum Leben.
-              {state.next && ` Als Nächstes: ${state.next.name}.`}
+              Jede Einheit – Chin-Ups oder Yoga – bringt ein Teil.{' '}
+              {complete
+                ? 'Du hast alles geschafft, das Bild ist vollständig.'
+                : `Noch ${left} ${left === 1 ? 'Einheit' : 'Einheiten'}, dann siehst du das ganze Bild.`}
             </p>
-            <div className="section-sm">{picture}</div>
+            <div className="section-sm">
+              <ChamberPicture count={count} />
+            </div>
           </div>
         </div>
       )}
@@ -106,19 +180,18 @@ export function ChamberCard({ units }: { units: number }) {
 // ---------- Strength flask ----------
 
 export function PotionCard({ level }: { level: number }) {
-  const surface = potionSurface(level);
   const percent = Math.round(level * 100);
 
   return (
     <div className="reward potion">
       <div className="potion-img">
-        <img className="potion-empty" src={POTION_SRC} alt="" />
-        <img className="potion-fill" src={POTION_SRC} alt="" style={{ clipPath: `inset(0 0 ${100 - POTION_NECK}% 0)` }} />
+        <img src={asset('potion-empty.webp')} alt="" />
+        {/* Only the liquid itself is cut, the glass, cork and tag never change */}
         <img
-          className="potion-fill potion-liquid"
-          src={POTION_SRC}
+          className="potion-liquid"
+          src={asset('potion-liquid.webp')}
           alt={`Kraft-Fläschchen, ${percent} Prozent voll`}
-          style={{ clipPath: `inset(${surface}% 0 0 0)` }}
+          style={{ clipPath: `inset(${potionSurface(level)}% 0 0 0)` }}
         />
       </div>
       <span className="reward-num">

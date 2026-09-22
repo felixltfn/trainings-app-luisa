@@ -37,8 +37,10 @@ oder `prompt()` (dafür `src/Picker.tsx` und Inline-Meldungen).
 
 ## Regel 6: Belohnung im 3D-Miniatur-Look
 
-`src/gamification.ts` + `src/screens/Rewards.tsx`. Die Kammer (`public/chamber.webp`) färbt pro Einheit
-(Chin-Ups + Yoga) ein Ding ein – Positionen in `CHAMBER_SPOTS`, auf das Bild vermessen. Das
-Kraft-Fläschchen (`public/potion.webp`) zeigt geschätzte Kraft ÷ Körpergewicht. Neue Bilder immer
-als heller 3D-Clay-Render auf freigestelltem Hintergrund (passt zum App-Look), keine dunklen Fotos;
-wird ein Bild getauscht, müssen Spots und `POTION_*`-Grenzen neu vermessen werden.
+`src/gamification.ts` + `src/screens/Rewards.tsx`. Die Insel (`public/chamber.webp`) bekommt pro
+Einheit (Chin-Ups + Yoga) ein Teil; was noch nicht erreicht ist, fehlt ganz – das fertige Bild gibt es
+erst nach allen `CHAMBER_PIECES` (84 = 14 Wochen × 6). Die Teile stehen in `public/chamber-pieces.png`
+(Grauwert = Nummer × 3), erzeugt mit `scripts/split-chamber.py`. Das Kraft-Fläschchen besteht aus leerem
+Glas + reiner Flüssigkeitsebene (`potion-empty/-liquid.webp`), nur die Flüssigkeit wird abgeschnitten.
+Neue Bilder immer als heller 3D-Clay-Render, freigestellt; nach einem Bildtausch Teile neu berechnen
+und `POTION_LIQUID_*` neu vermessen.
