@@ -40,7 +40,7 @@ oder `prompt()` (dafür `src/Picker.tsx` und Inline-Meldungen).
 `src/gamification.ts` + `src/screens/Rewards.tsx`. Die Insel (`public/chamber.webp`) bekommt pro
 Chin-Up-Tag ein Teil (`CHAMBER_PIECES` = 42 = 14 Wochen × 3), Yoga läuft nur mit. Der heutige Tag zählt
 erst, wenn er fertig ist: nach dem Yoga-Speichern oder mit „Heute kein Yoga“ (Meta `dayClosed`); frühere
-Tage zählen immer. Danach zeigt `ChamberReveal` das neue Teil mit Animation (Meta `chamberSeen`). Was noch
+Tage zählen immer. Danach poppt `ChamberReveal` (in `App.tsx`, über jedem Tab) mit dem neuen Teil auf (Meta `chamberSeen`). Die Yoga-Frage nach den Chin-Ups kommt aus den gespeicherten Daten, nicht aus einem Zwischenzustand. Was noch
 nicht erreicht ist, fehlt ganz; das Einhorn ist immer das letzte Teil. Die Teile stehen in
 `public/chamber-pieces.png` (Grauwert = Nummer × 3), erzeugt mit `python3 scripts/split-chamber.py`
 (dauert ~9 Min.). Das Kraft-Fläschchen besteht aus leerem Glas + reiner Flüssigkeitsebene

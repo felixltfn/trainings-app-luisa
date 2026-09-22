@@ -1159,6 +1159,40 @@ button.banner {
   margin: 0 0 6px;
 }
 
+.btn.delete {
+  gap: 8px;
+  margin-top: 4px;
+  border: 1px solid var(--line);
+  background: none;
+  color: var(--danger);
+}
+
+.btn.delete svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.btn.delete-now {
+  background: var(--danger);
+  color: #ffffff;
+}
+
+.confirm {
+  margin-top: 4px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.confirm p {
+  margin: 0 0 10px;
+}
+
 /* ---------- Today's plan as a numbered list ---------- */
 
 .plan-list {
@@ -1441,6 +1475,23 @@ button.banner {
   transition: clip-path 1.2s ease-out;
 }
 
+/* The island pops up over everything after a finished day */
+.reveal-sheet {
+  z-index: 40;
+  animation: reveal-pop 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.15) both;
+}
+
+@keyframes reveal-pop {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 .sheet .chamber-img {
   max-width: 560px;
 }
@@ -1448,7 +1499,8 @@ button.banner {
 @media (prefers-reduced-motion: reduce) {
   .streak.lit .streak-flame,
   .chamber-new,
-  .chamber-new.reveal {
+  .chamber-new.reveal,
+  .reveal-sheet {
     animation: none;
   }
 

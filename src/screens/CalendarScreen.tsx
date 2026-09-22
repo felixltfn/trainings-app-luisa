@@ -1,7 +1,8 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useRef, useState } from 'react';
 
-import { db } from '../db';
+import { db, setMeta } from '../db';
+import { META_DAY_CLOSED } from '../gamification';
 import { fmtDate, fmtMinutes, freeHeightLabel, isoDate } from '../logic';
 import { SessionScreen } from './SessionScreen';
 
@@ -142,6 +143,8 @@ function DayView({
     const n = Number(minutes.replace(',', '.'));
     if (!Number.isFinite(n) || n <= 0) return;
     await db.yoga.add({ date, minutes: Math.round(n) });
+    // Yoga for today finishes the day, like on the start screen
+    if (date === isoDate(new Date())) await setMeta(META_DAY_CLOSED, date);
   };
 
   return (
@@ -173,9 +176,7 @@ function DayView({
                     {s.hang ? ` · gehangen${s.hangSeconds ? ` ${s.hangSeconds} s` : ''}` : ''}
                     {s.free ? ` · freier Versuch: ${s.free.done ? 'geschafft' : freeHeightLabel(s.free.height)}` : ''}
                   </p>
-                  <button className="btn danger" onClick={() => db.sessions.delete(s.id)}>
-                    Löschen
-                  </button>
+                  <DeleteButton what="Chin-Up-Einheit" onDelete={() => db.sessions.delete(s.id)} />
                 </div>
               );
             })
@@ -193,9 +194,7 @@ function DayView({
             yoga.map((y) => (
               <div key={y.id} className="day-entry">
                 <p>{fmtMinutes(y.minutes)}</p>
-                <button className="btn danger" onClick={() => db.yoga.delete(y.id)}>
-                  Löschen
-                </button>
+                <DeleteButton what="Yoga-Einheit" onDelete={() => db.yoga.delete(y.id)} />
               </div>
             ))
           )}
@@ -216,6 +215,36 @@ function DayView({
 
         <button className="btn secondary block section" onClick={onClose}>
           Fertig
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Deleting asks once more inline, so a slip of the thumb loses nothing
+function DeleteButton({ what, onDelete }: { what: string; onDelete: () => Promise<void> }) {
+  const [asking, setAsking] = useState(false);
+
+  if (!asking) {
+    return (
+      <button className="btn delete" onClick={() => setAsking(true)}>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3" />
+        </svg>
+        {what} löschen
+      </button>
+    );
+  }
+
+  return (
+    <div className="confirm">
+      <p className="small">Wirklich löschen? Das lässt sich nicht rückgängig machen.</p>
+      <div className="row">
+        <button className="btn delete-now" onClick={onDelete}>
+          Ja, löschen
+        </button>
+        <button className="btn secondary" onClick={() => setAsking(false)}>
+          Behalten
         </button>
       </div>
     </div>

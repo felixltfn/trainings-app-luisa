@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { CalendarScreen } from './screens/CalendarScreen';
+import { ChamberReveal } from './screens/Rewards';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { StatsScreen } from './screens/StatsScreen';
 import { TodayScreen } from './screens/TodayScreen';
@@ -34,6 +35,9 @@ export function App() {
           </button>
         ))}
       </nav>
+
+      {/* A finished day brings a new island piece, wherever she is in the app */}
+      <ChamberReveal />
     </>
   );
 }

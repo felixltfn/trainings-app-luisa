@@ -2,7 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useState } from 'react';
 
 import { DEFAULT_BODYWEIGHT, db, getMeta, setMeta } from '../db';
-import { META_CHAMBER_SEEN, META_DAY_CLOSED, chamberPieces, potionLevel } from '../gamification';
+import { META_DAY_CLOSED, potionLevel } from '../gamification';
 import {
   BIG_GOAL_DATE,
   WEEKLY_GOAL,
@@ -17,12 +17,11 @@ import {
 } from '../logic';
 import { countInWeek, weekStreak } from '../stats';
 import { loadStart, minutesSince, saveStart } from '../yogaTimer';
-import { ChamberCard, ChamberReveal, PotionCard, StreakBanner } from './Rewards';
+import { ChamberCard, PotionCard, StreakBanner, useChamber } from './Rewards';
 import { SessionScreen } from './SessionScreen';
 
 export function TodayScreen() {
   const [entering, setEntering] = useState(false);
-  const [toYoga, setToYoga] = useState(false); // straight from the session to the yoga start
   const [startedAt, setStartedAt] = useState<number | null>(loadStart);
   const [stopping, setStopping] = useState<number | null>(null); // minutes, editable before saving
   const [manual, setManual] = useState(false);
@@ -35,18 +34,9 @@ export function TodayScreen() {
     const sessions = await db.sessions.toArray();
     const yoga = await db.yoga.toArray();
     const bodyweight = (await getMeta<number>('bodyweight')) ?? DEFAULT_BODYWEIGHT;
-    const dayClosed = (await getMeta<string>(META_DAY_CLOSED)) ?? null;
-    const seen = (await getMeta<number>(META_CHAMBER_SEEN)) ?? null;
-    return { bands, sessions, yoga, bodyweight, dayClosed, seen };
+    return { bands, sessions, yoga, bodyweight };
   }, []);
-
-  const today = isoDate(new Date(now));
-  const pieces = data ? chamberPieces(data.sessions.map((s) => s.date), data.dayClosed, today) : 0;
-
-  // First start or deleted entries: take over the count without an animation
-  useEffect(() => {
-    if (data && (data.seen === null || data.seen > pieces)) void setMeta(META_CHAMBER_SEEN, pieces);
-  }, [data, pieces]);
+  const chamber = useChamber();
 
   // The running yoga timer is recomputed from its start time, so closing the app is fine
   useEffect(() => {
@@ -59,8 +49,9 @@ export function TodayScreen() {
     };
   }, []);
 
-  if (!data) return <div className="screen" />;
-  const { bands, sessions, yoga, bodyweight, seen } = data;
+  if (!data || !chamber) return <div className="screen" />;
+  const { bands, sessions, yoga, bodyweight } = data;
+  const today = chamber.today;
 
   // The day is finished after yoga or "Heute kein Yoga" – only then the island gets its piece
   const closeDay = () => setMeta(META_DAY_CLOSED, isoDate(new Date()));
@@ -73,7 +64,6 @@ export function TodayScreen() {
           setEntering(false);
           // Yoga already done today: the chin-ups finish the day
           if (yoga.some((y) => y.date === isoDate(new Date()))) void closeDay();
-          else setToYoga(true);
         }}
       />
     );
@@ -106,8 +96,10 @@ export function TodayScreen() {
     setManual(false);
   };
 
-  // Right after saving the session: nothing but the way into the yoga session
-  if (toYoga && !startedAt) {
+  // Chin-ups done, day not finished yet: nothing but the way into yoga. Comes from the saved data,
+  // so it is still there after switching tabs or closing the app.
+  const chinToday = sessions.some((s) => s.date === today);
+  if (chinToday && chamber.dayClosed !== today && !startedAt && stopping === null) {
     return (
       <div className="screen">
         <p className="label">Chin-Ups gespeichert</p>
@@ -115,19 +107,13 @@ export function TodayScreen() {
         <p className="muted">Starte die Zeit, wenn du loslegst. Sie läuft weiter, auch wenn du das Handy weglegst.</p>
         <button
           className="btn block section"
-          onClick={() => {
-            startYoga();
-            setToYoga(false);
-          }}
+          onClick={startYoga}
         >
           Yoga starten
         </button>
         <button
           className="btn secondary block section-sm"
-          onClick={async () => {
-            await closeDay();
-            setToYoga(false);
-          }}
+          onClick={closeDay}
         >
           Heute kein Yoga
         </button>
@@ -150,10 +136,6 @@ export function TodayScreen() {
         </button>
       </div>
     );
-  }
-
-  if (seen !== null && pieces > seen) {
-    return <ChamberReveal seen={seen} pieces={pieces} onDone={() => setMeta(META_CHAMBER_SEEN, pieces)} />;
   }
 
   return (
@@ -348,7 +330,7 @@ export function TodayScreen() {
       <div className="section">
         <p className="label">Deine Insel</p>
         <div className="rewards">
-          <ChamberCard pieces={pieces} />
+          <ChamberCard pieces={chamber.pieces} />
           <PotionCard level={potionLevel(sessions, bands, bodyweight)} />
         </div>
       </div>

@@ -1,7 +1,17 @@
+import { useLiveQuery } from 'dexie-react-hooks';
 import { type CSSProperties, useEffect, useRef, useState } from 'react';
 
-import { CHAMBER_PIECES, PIECE_STEP, chamberState, potionSurface } from '../gamification';
-import { WEEKLY_GOAL } from '../logic';
+import { db, getMeta, setMeta } from '../db';
+import {
+  CHAMBER_PIECES,
+  META_CHAMBER_SEEN,
+  META_DAY_CLOSED,
+  PIECE_STEP,
+  chamberPieces,
+  chamberState,
+  potionSurface,
+} from '../gamification';
+import { WEEKLY_GOAL, isoDate } from '../logic';
 
 const asset = (name: string) => `${import.meta.env.BASE_URL}${name}`;
 
@@ -213,33 +223,75 @@ export function ChamberCard({ pieces }: { pieces: number }) {
   );
 }
 
-// Full screen after a finished day: the new piece flies onto the island
-interface ChamberRevealProps {
-  seen: number; // pieces she had already seen
-  pieces: number;
-  onDone: () => void;
+export interface Chamber {
+  pieces: number; // earned so far
+  seen: number | null; // pieces she has already watched appear, null on first start
+  dayClosed: string | null;
+  today: string;
 }
 
-export function ChamberReveal({ seen, pieces, onDone }: ChamberRevealProps) {
+// Island progress, live from the database. `today` follows the clock, so the day switch counts too.
+export function useChamber(): Chamber | null {
+  const [today, setToday] = useState(() => isoDate(new Date()));
+  useEffect(() => {
+    const tick = () => setToday(isoDate(new Date()));
+    const id = window.setInterval(tick, 60_000);
+    document.addEventListener('visibilitychange', tick);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener('visibilitychange', tick);
+    };
+  }, []);
+
+  const data = useLiveQuery(async () => {
+    const dates = (await db.sessions.toArray()).map((s) => s.date);
+    const dayClosed = (await getMeta<string>(META_DAY_CLOSED)) ?? null;
+    const seen = (await getMeta<number>(META_CHAMBER_SEEN)) ?? null;
+    return { dates, dayClosed, seen };
+  }, []);
+
+  if (!data) return null;
+  return { pieces: chamberPieces(data.dates, data.dayClosed, today), seen: data.seen, dayClosed: data.dayClosed, today };
+}
+
+// Pops up over any screen as soon as a new piece is earned: the island with the new piece flying in
+export function ChamberReveal() {
+  const chamber = useChamber();
+  const pieces = chamber?.pieces ?? 0;
+  const seen = chamber?.seen ?? null;
+
+  // First start or deleted entries: take over the count without an animation
+  useEffect(() => {
+    if (chamber && (seen === null || seen > pieces)) void setMeta(META_CHAMBER_SEEN, pieces);
+  }, [chamber, seen, pieces]);
+
+  if (seen === null || pieces <= seen) return null;
+
   const { count, complete } = chamberState(pieces);
   const added = count - seen;
 
   return (
-    <div className="screen">
-      <p className="label">Tag geschafft</p>
-      <h1 className="title">
-        {complete ? 'Deine Insel ist fertig!' : added === 1 ? 'Ein neues Teil für deine Insel' : `${added} neue Teile für deine Insel`}
-      </h1>
-      <p className="muted">
-        {count} von {CHAMBER_PIECES} Teilen.{' '}
-        {complete ? 'Das ganze Bild gehört dir.' : `Noch ${days(CHAMBER_PIECES - count)}, dann ist sie vollständig.`}
-      </p>
-      <div className="section-sm">
-        <ChamberPicture count={count} newFrom={seen} reveal />
+    <div className="sheet reveal-sheet" role="dialog" aria-label="Neues Teil für deine Insel">
+      <div className="screen">
+        <p className="label">Tag geschafft</p>
+        <h1 className="title">
+          {complete
+            ? 'Deine Insel ist fertig!'
+            : added === 1
+              ? 'Ein neues Teil für deine Insel'
+              : `${added} neue Teile für deine Insel`}
+        </h1>
+        <p className="muted">
+          {count} von {CHAMBER_PIECES} Teilen.{' '}
+          {complete ? 'Das ganze Bild gehört dir.' : `Noch ${days(CHAMBER_PIECES - count)}, dann ist sie vollständig.`}
+        </p>
+        <div className="section-sm">
+          <ChamberPicture count={count} newFrom={seen} reveal />
+        </div>
+        <button className="btn block section" onClick={() => setMeta(META_CHAMBER_SEEN, pieces)}>
+          Weiter
+        </button>
       </div>
-      <button className="btn block section" onClick={onDone}>
-        Weiter
-      </button>
     </div>
   );
 }
