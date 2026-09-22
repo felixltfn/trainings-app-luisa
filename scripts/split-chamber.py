@@ -4,9 +4,11 @@ import numpy as np
 from PIL import Image
 from scipy import ndimage as ndi
 
-N = int(sys.argv[1]) if len(sys.argv) > 1 else 84
+# Run from the project root: python3 scripts/split-chamber.py [N]
+N = int(sys.argv[1]) if len(sys.argv) > 1 else 42  # one piece per chin-up day, 14 weeks x 3
 SIZE = 1024
-img = Image.open('isle_cut.png').convert('RGBA').resize((SIZE, SIZE), Image.LANCZOS)
+UNICORN = (440, 140)  # (y, x) on the unicorn's body – it stays one piece of its own and comes last
+img = Image.open('public/chamber.webp').convert('RGBA').resize((SIZE, SIZE), Image.LANCZOS)
 rgba = np.asarray(img).astype(np.float64)
 alpha = rgba[..., 3]
 mask = alpha > 40
@@ -68,10 +70,14 @@ def neighbours(i):
     reg = labels == i
     ring = ndi.binary_dilation(reg, iterations=1) & ~reg
     return set(np.unique(labels[ring])) - {0}
-target_min = mask.sum() / N * 0.35
+# Once pieces are this coarse the unicorn is one clean piece; from then on it is left alone
+FREEZE = 2 * N
+unicorn = None
 while len(area) > N:
-    i = min(area, key=area.get)
-    nb = neighbours(i)
+    if unicorn is None and len(area) <= FREEZE:
+        unicorn = labels[UNICORN]
+    i = min((k for k in area if k != unicorn), key=area.get)
+    nb = neighbours(i) - {unicorn}
     if not nb:
         labels[labels == i] = 0; del area[i]; del mean[i]; continue
     # colour similarity, but prefer not to grow already large pieces
@@ -92,8 +98,10 @@ while rest:
     cand = rest[:12]
     best = max(cand, key=lambda i: min(np.linalg.norm(cent[i] - cent[r]) for r in recent))
     order.append(best); rest.remove(best)
+# The unicorn is always the very last piece
+order.remove(unicorn); order.append(unicorn)
 out = np.zeros((H, W), np.uint8)
 for n, i in enumerate(order, 1):
-    out[labels == i] = n
-Image.fromarray(out, 'L').save('chamber_pieces.png', optimize=True)
+    out[labels == i] = n * 3  # PIECE_STEP in src/gamification.ts
+Image.fromarray(out).save('public/chamber-pieces.png', optimize=True)
 print('pieces', len(order), 'area range', min(area.values()), max(area.values()))

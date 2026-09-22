@@ -38,9 +38,16 @@ oder `prompt()` (dafür `src/Picker.tsx` und Inline-Meldungen).
 ## Regel 6: Belohnung im 3D-Miniatur-Look
 
 `src/gamification.ts` + `src/screens/Rewards.tsx`. Die Insel (`public/chamber.webp`) bekommt pro
-Einheit (Chin-Ups + Yoga) ein Teil; was noch nicht erreicht ist, fehlt ganz – das fertige Bild gibt es
-erst nach allen `CHAMBER_PIECES` (84 = 14 Wochen × 6). Die Teile stehen in `public/chamber-pieces.png`
-(Grauwert = Nummer × 3), erzeugt mit `scripts/split-chamber.py`. Das Kraft-Fläschchen besteht aus leerem
-Glas + reiner Flüssigkeitsebene (`potion-empty/-liquid.webp`), nur die Flüssigkeit wird abgeschnitten.
-Neue Bilder immer als heller 3D-Clay-Render, freigestellt; nach einem Bildtausch Teile neu berechnen
-und `POTION_LIQUID_*` neu vermessen.
+Chin-Up-Tag ein Teil (`CHAMBER_PIECES` = 42 = 14 Wochen × 3), Yoga läuft nur mit. Der heutige Tag zählt
+erst, wenn er fertig ist: nach dem Yoga-Speichern oder mit „Heute kein Yoga“ (Meta `dayClosed`); frühere
+Tage zählen immer. Danach zeigt `ChamberReveal` das neue Teil mit Animation (Meta `chamberSeen`). Was noch
+nicht erreicht ist, fehlt ganz; das Einhorn ist immer das letzte Teil. Die Teile stehen in
+`public/chamber-pieces.png` (Grauwert = Nummer × 3), erzeugt mit `python3 scripts/split-chamber.py`
+(dauert ~9 Min.). Das Kraft-Fläschchen besteht aus leerem Glas + reiner Flüssigkeitsebene
+(`potion-empty/-liquid.webp`), nur die Flüssigkeit wird abgeschnitten. Neue Bilder immer als heller
+3D-Clay-Render, freigestellt; nach einem Bildtausch Teile neu berechnen (Einhorn-Punkt `UNICORN` im Skript
+prüfen) und `POTION_LIQUID_*` neu vermessen.
+
+## Regel 7: Serie nur für Chin-Ups
+
+Die Wochenserie zählt nur Chin-Up-Wochen. Yoga wird eingetragen und angezeigt, hat aber keine Serie.

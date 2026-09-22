@@ -1356,6 +1356,61 @@ button.banner {
   }
 }
 
+/* After a finished day the new piece drops onto the island out of its own centre, then glows */
+.chamber-new.reveal {
+  animation:
+    piece-in 1.1s cubic-bezier(0.2, 0.9, 0.3, 1.25) 0.5s both,
+    glow 2.4s ease-in-out 1.6s infinite;
+}
+
+@keyframes piece-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-10%) scale(1.35);
+    filter: brightness(1.8) drop-shadow(0 0 12px var(--accent));
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(0) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+/* Small sparkles bursting from where the piece lands */
+.chamber-burst {
+  position: absolute;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.chamber-burst i {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  margin: -4.5px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--accent);
+  opacity: 0;
+  animation: burst 0.9s ease-out 1.1s both;
+}
+
+@keyframes burst {
+  0% {
+    opacity: 1;
+    transform: rotate(var(--angle)) translateX(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--angle)) translateX(72px) scale(0.3);
+  }
+}
+
 .chamber-empty {
   position: absolute;
   inset: 12%;
@@ -1392,7 +1447,12 @@ button.banner {
 
 @media (prefers-reduced-motion: reduce) {
   .streak.lit .streak-flame,
-  .chamber-new {
+  .chamber-new,
+  .chamber-new.reveal {
     animation: none;
+  }
+
+  .chamber-burst {
+    display: none;
   }
 }

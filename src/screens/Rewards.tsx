@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { type CSSProperties, useEffect, useRef, useState } from 'react';
 
 import { CHAMBER_PIECES, PIECE_STEP, chamberState, potionSurface } from '../gamification';
 import { WEEKLY_GOAL } from '../logic';
@@ -10,28 +10,25 @@ const weeks = (n: number) => (n === 1 ? '1 Woche' : `${n} Wochen`);
 // ---------- Streak ----------
 
 interface StreakProps {
-  chinStreak: number;
-  yogaStreak: number;
-  chinThisWeek: number;
+  streak: number; // weeks in a row with enough chin-up days
+  thisWeek: number;
 }
 
-export function StreakBanner({ chinStreak, yogaStreak, chinThisWeek }: StreakProps) {
-  const missing = Math.max(0, WEEKLY_GOAL - chinThisWeek);
+export function StreakBanner({ streak, thisWeek }: StreakProps) {
+  const missing = Math.max(0, WEEKLY_GOAL - thisWeek);
   const hint =
     missing === 0
       ? 'Diese Woche ist geschafft.'
       : `Noch ${missing} Chin-Up-${missing === 1 ? 'Einheit' : 'Einheiten'}, dann zählt auch diese Woche.`;
 
   return (
-    <div className={`streak${chinStreak > 0 ? ' lit' : ''}`}>
+    <div className={`streak${streak > 0 ? ' lit' : ''}`}>
       <svg className="streak-flame" viewBox="0 0 24 24" aria-hidden="true">
         <path d="M12 2c1 3.5 5 5.8 5 10.5A5 5 0 0 1 7 12.5c0-2 1-3.5 2.2-4.6.2 1.6 1 2.6 2 3C11 8 11.2 5 12 2Z" />
       </svg>
       <div className="grow">
-        <p className="streak-title">{chinStreak > 0 ? `${weeks(chinStreak)} in Folge` : 'Deine Serie startet'}</p>
-        <p className="small muted">
-          {hint} Yoga: {yogaStreak > 0 ? `${weeks(yogaStreak)} in Folge` : 'Serie startet'}.
-        </p>
+        <p className="streak-title">{streak > 0 ? `${weeks(streak)} in Folge` : 'Deine Serie startet'}</p>
+        <p className="small muted">{hint}</p>
       </div>
     </div>
   );
@@ -80,16 +77,28 @@ function loadChamber(): Promise<ChamberSource> {
   return chamberSource;
 }
 
-// Draws only the pieces that match `keep`; everything else stays transparent
-function paint(canvas: HTMLCanvasElement, source: ChamberSource, keep: (piece: number) => boolean) {
+interface Point {
+  x: number; // % of the width
+  y: number; // % of the height
+}
+
+// Draws only the pieces that match `keep`; everything else stays transparent.
+// Returns the centre of what was drawn.
+function paint(canvas: HTMLCanvasElement, source: ChamberSource, keep: (piece: number) => boolean): Point | null {
   canvas.width = source.size;
   canvas.height = source.size;
   const ctx = canvas.getContext('2d');
-  if (!ctx) return;
+  if (!ctx) return null;
   const out = ctx.createImageData(source.size, source.size);
+  let sumX = 0;
+  let sumY = 0;
+  let drawn = 0;
   for (let i = 0; i < source.pieces.length; i++) {
     const piece = source.pieces[i];
     if (piece === 0 || !keep(piece)) continue;
+    sumX += i % source.size;
+    sumY += Math.floor(i / source.size);
+    drawn++;
     const p = i * 4;
     out.data[p] = source.pixels[p];
     out.data[p + 1] = source.pixels[p + 1];
@@ -97,11 +106,19 @@ function paint(canvas: HTMLCanvasElement, source: ChamberSource, keep: (piece: n
     out.data[p + 3] = source.pixels[p + 3];
   }
   ctx.putImageData(out, 0, 0);
+  return drawn > 0 ? { x: (sumX / drawn / source.size) * 100, y: (sumY / drawn / source.size) * 100 } : null;
 }
 
-function ChamberPicture({ count }: { count: number }) {
+interface ChamberPictureProps {
+  count: number;
+  newFrom?: number; // pieces above this one are new; default: only the newest
+  reveal?: boolean; // new pieces fly in instead of just glowing
+}
+
+function ChamberPicture({ count, newFrom = count - 1, reveal = false }: ChamberPictureProps) {
   const island = useRef<HTMLCanvasElement>(null);
   const newest = useRef<HTMLCanvasElement>(null);
+  const [centre, setCentre] = useState<Point | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -109,35 +126,54 @@ function ChamberPicture({ count }: { count: number }) {
     loadChamber()
       .then((source) => {
         if (!alive || !island.current || !newest.current) return;
-        paint(island.current, source, (piece) => piece < count);
-        paint(newest.current, source, (piece) => piece === count);
+        paint(island.current, source, (piece) => piece <= newFrom);
+        setCentre(paint(newest.current, source, (piece) => piece > newFrom && piece <= count));
       })
       .catch((e: unknown) => setError(e instanceof Error ? e.message : 'Bild konnte nicht geladen werden'));
     return () => {
       alive = false;
     };
-  }, [count]);
+  }, [count, newFrom]);
 
   if (error) return <p className="small muted">{error}</p>;
+
+  const origin = centre ? `${centre.x}% ${centre.y}%` : 'center';
 
   return (
     <div className="chamber-img">
       {count === 0 && <span className="chamber-empty">Hier entsteht etwas</span>}
       <canvas ref={island} role="img" aria-label={`Deine Insel, ${count} von ${CHAMBER_PIECES} Teilen`} />
-      <canvas ref={newest} className="chamber-new" aria-hidden="true" />
+      {/* key: a new count starts the animation again */}
+      <canvas
+        key={count}
+        ref={newest}
+        className={`chamber-new${reveal ? ' reveal' : ''}`}
+        style={{ transformOrigin: origin }}
+        aria-hidden="true"
+      />
+      {reveal && centre && (
+        <span key={`burst-${count}`} className="chamber-burst" style={{ left: `${centre.x}%`, top: `${centre.y}%` }}>
+          {Array.from({ length: 8 }, (_, i) => (
+            <i key={i} style={{ '--angle': `${i * 45}deg` } as CSSProperties} />
+          ))}
+        </span>
+      )}
     </div>
   );
 }
 
-export function ChamberCard({ units }: { units: number }) {
+const days = (n: number) => (n === 1 ? '1 Trainingstag' : `${n} Trainingstage`);
+
+export function ChamberCard({ pieces }: { pieces: number }) {
   const [open, setOpen] = useState(false);
-  const { count, complete } = chamberState(units);
+  const [testExtra, setTestExtra] = useState(0); // dev only: click through the pieces
+  const { count, complete } = chamberState(pieces + testExtra);
   const left = CHAMBER_PIECES - count;
 
   const caption = complete
     ? 'Das Bild ist vollständig.'
     : count === 0
-      ? 'Jede Einheit bringt ein Teil.'
+      ? 'Jeder Trainingstag bringt ein Teil.'
       : 'Das neueste Teil leuchtet.';
 
   return (
@@ -162,18 +198,60 @@ export function ChamberCard({ units }: { units: number }) {
               {count} von {CHAMBER_PIECES}
             </h1>
             <p className="muted">
-              Jede Einheit – Chin-Ups oder Yoga – bringt ein Teil.{' '}
+              Jeder Trainingstag bringt ein Teil. Es kommt dazu, sobald der Tag fertig ist: nach dem Yoga oder mit
+              „Heute kein Yoga“.{' '}
               {complete
                 ? 'Du hast alles geschafft, das Bild ist vollständig.'
-                : `Noch ${left} ${left === 1 ? 'Einheit' : 'Einheiten'}, dann siehst du das ganze Bild.`}
+                : `Noch ${days(left)}, dann siehst du das ganze Bild.`}
             </p>
             <div className="section-sm">
-              <ChamberPicture count={count} />
+              <ChamberPicture count={count} reveal={testExtra > 0} />
             </div>
+            {import.meta.env.DEV && (
+              <div className="row section-sm">
+                <button className="btn secondary" onClick={() => setTestExtra((n) => n + 1)} disabled={complete}>
+                  Test: +1 Teil
+                </button>
+                <button className="btn ghost" onClick={() => setTestExtra(0)} disabled={testExtra === 0}>
+                  Zurücksetzen
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
     </>
+  );
+}
+
+// Full screen after a finished day: the new piece flies onto the island
+interface ChamberRevealProps {
+  seen: number; // pieces she had already seen
+  pieces: number;
+  onDone: () => void;
+}
+
+export function ChamberReveal({ seen, pieces, onDone }: ChamberRevealProps) {
+  const { count, complete } = chamberState(pieces);
+  const added = count - seen;
+
+  return (
+    <div className="screen">
+      <p className="label">Tag geschafft</p>
+      <h1 className="title">
+        {complete ? 'Deine Insel ist fertig!' : added === 1 ? 'Ein neues Teil für deine Insel' : `${added} neue Teile für deine Insel`}
+      </h1>
+      <p className="muted">
+        {count} von {CHAMBER_PIECES} Teilen.{' '}
+        {complete ? 'Das ganze Bild gehört dir.' : `Noch ${days(CHAMBER_PIECES - count)}, dann ist sie vollständig.`}
+      </p>
+      <div className="section-sm">
+        <ChamberPicture count={count} newFrom={seen} reveal />
+      </div>
+      <button className="btn block section" onClick={onDone}>
+        Weiter
+      </button>
+    </div>
   );
 }
 

@@ -1,8 +1,8 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useState } from 'react';
 
-import { DEFAULT_BODYWEIGHT, db, getMeta } from '../db';
-import { potionLevel } from '../gamification';
+import { DEFAULT_BODYWEIGHT, db, getMeta, setMeta } from '../db';
+import { META_CHAMBER_SEEN, META_DAY_CLOSED, chamberPieces, potionLevel } from '../gamification';
 import {
   BIG_GOAL_DATE,
   WEEKLY_GOAL,
@@ -17,7 +17,7 @@ import {
 } from '../logic';
 import { countInWeek, weekStreak } from '../stats';
 import { loadStart, minutesSince, saveStart } from '../yogaTimer';
-import { ChamberCard, PotionCard, StreakBanner } from './Rewards';
+import { ChamberCard, ChamberReveal, PotionCard, StreakBanner } from './Rewards';
 import { SessionScreen } from './SessionScreen';
 
 export function TodayScreen() {
@@ -35,8 +35,18 @@ export function TodayScreen() {
     const sessions = await db.sessions.toArray();
     const yoga = await db.yoga.toArray();
     const bodyweight = (await getMeta<number>('bodyweight')) ?? DEFAULT_BODYWEIGHT;
-    return { bands, sessions, yoga, bodyweight };
+    const dayClosed = (await getMeta<string>(META_DAY_CLOSED)) ?? null;
+    const seen = (await getMeta<number>(META_CHAMBER_SEEN)) ?? null;
+    return { bands, sessions, yoga, bodyweight, dayClosed, seen };
   }, []);
+
+  const today = isoDate(new Date(now));
+  const pieces = data ? chamberPieces(data.sessions.map((s) => s.date), data.dayClosed, today) : 0;
+
+  // First start or deleted entries: take over the count without an animation
+  useEffect(() => {
+    if (data && (data.seen === null || data.seen > pieces)) void setMeta(META_CHAMBER_SEEN, pieces);
+  }, [data, pieces]);
 
   // The running yoga timer is recomputed from its start time, so closing the app is fine
   useEffect(() => {
@@ -50,7 +60,10 @@ export function TodayScreen() {
   }, []);
 
   if (!data) return <div className="screen" />;
-  const { bands, sessions, yoga, bodyweight } = data;
+  const { bands, sessions, yoga, bodyweight, seen } = data;
+
+  // The day is finished after yoga or "Heute kein Yoga" – only then the island gets its piece
+  const closeDay = () => setMeta(META_DAY_CLOSED, isoDate(new Date()));
 
   if (entering) {
     return (
@@ -58,7 +71,9 @@ export function TodayScreen() {
         onClose={() => setEntering(false)}
         onSaved={() => {
           setEntering(false);
-          setToYoga(true);
+          // Yoga already done today: the chin-ups finish the day
+          if (yoga.some((y) => y.date === isoDate(new Date()))) void closeDay();
+          else setToYoga(true);
         }}
       />
     );
@@ -84,6 +99,7 @@ export function TodayScreen() {
 
   const saveYoga = async (minutes: number, date: string) => {
     await db.yoga.add({ date, minutes: Math.max(1, Math.round(minutes)) });
+    if (date === isoDate(new Date())) await closeDay();
     setStartedAt(null);
     saveStart(null);
     setStopping(null);
@@ -106,7 +122,13 @@ export function TodayScreen() {
         >
           Yoga starten
         </button>
-        <button className="btn secondary block section-sm" onClick={() => setToYoga(false)}>
+        <button
+          className="btn secondary block section-sm"
+          onClick={async () => {
+            await closeDay();
+            setToYoga(false);
+          }}
+        >
           Heute kein Yoga
         </button>
       </div>
@@ -130,6 +152,10 @@ export function TodayScreen() {
     );
   }
 
+  if (seen !== null && pieces > seen) {
+    return <ChamberReveal seen={seen} pieces={pieces} onDone={() => setMeta(META_CHAMBER_SEEN, pieces)} />;
+  }
+
   return (
     <div className="screen">
       <p className="label">
@@ -138,11 +164,7 @@ export function TodayScreen() {
       <h1 className="title">Heute</h1>
 
       <div className="section">
-        <StreakBanner
-          chinStreak={weekStreak(sessions.map((s) => s.date))}
-          yogaStreak={weekStreak(yoga.map((y) => y.date))}
-          chinThisWeek={chinThisWeek}
-        />
+        <StreakBanner streak={weekStreak(sessions.map((s) => s.date))} thisWeek={chinThisWeek} />
       </div>
 
       <div className="stats-row section">
@@ -171,7 +193,8 @@ export function TodayScreen() {
 
       {/* Chin-up session */}
       <div className="section">
-        <p className="label">Chin-Up-Einheit</p>
+        <p className="label">Dein Chin-Up-Plan für heute</p>
+        <p className="small muted section-sm">Das machst du heute, der Reihe nach.</p>
         <ol className="plan-list">
           <li>
             <span className="plan-step">1</span>
@@ -321,11 +344,11 @@ export function TodayScreen() {
         )}
       </div>
 
-      {/* Rewards: the island grows with every session, the flask fills with strength */}
+      {/* Rewards: the island grows with every finished chin-up day, the flask fills with strength */}
       <div className="section">
         <p className="label">Deine Insel</p>
         <div className="rewards">
-          <ChamberCard units={sessions.length + yoga.length} />
+          <ChamberCard pieces={pieces} />
           <PotionCard level={potionLevel(sessions, bands, bodyweight)} />
         </div>
       </div>

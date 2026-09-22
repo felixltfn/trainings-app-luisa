@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 import { DEFAULT_BODYWEIGHT, db, getMeta } from '../db';
-import { WEEKLY_GOAL, fmtDate, fmtNum, freeHeightLabel, isoDate, parseIsoDate, weekStart } from '../logic';
+import { WEEKLY_GOAL, fmtDate, fmtMinutes, fmtNum, freeHeightLabel, isoDate, parseIsoDate, weekStart } from '../logic';
 import { countInWeek, forecastFreeChinUp, weekStreak } from '../stats';
 
 const axis = { fontSize: 12, fill: 'var(--text-2)' };
@@ -40,7 +40,7 @@ export function StatsScreen() {
   const chinWeek = countInWeek(sessions.map((s) => s.date), monday);
   const yogaWeek = countInWeek(yoga.map((y) => y.date), monday);
   const chinStreak = weekStreak(sessions.map((s) => s.date));
-  const yogaStreak = weekStreak(yoga.map((y) => y.date));
+  const yogaMinutes = yoga.filter((y) => y.date >= monday).reduce((sum, y) => sum + y.minutes, 0);
 
   // One line per band, so a band change shows up as its own line
   const repSeries = shown.map((s) => {
@@ -75,7 +75,7 @@ export function StatsScreen() {
               {yogaWeek}
               <span className="muted"> / {WEEKLY_GOAL}</span>
             </div>
-            <p className="small muted">{yogaStreak} Wochen in Folge</p>
+            <p className="small muted">{yogaMinutes > 0 ? `${fmtMinutes(yogaMinutes)} insgesamt` : 'noch nichts'}</p>
           </div>
         </div>
       </div>
