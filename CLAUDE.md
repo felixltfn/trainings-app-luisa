@@ -50,6 +50,12 @@ nicht erreicht ist, fehlt ganz; das Einhorn ist immer das letzte Teil. Die Teile
 3D-Clay-Render, freigestellt; nach einem Bildtausch Teile neu berechnen (Einhorn-Punkt `UNICORN` im Skript
 prüfen) und `POTION_LIQUID_*` neu vermessen.
 
+## Regel 6b: Test-Knopf nur lokal
+
+Der Knopf „Test: +1 Teil“ in `ChamberCard` steht hinter `import.meta.env.DEV` und darf nie anders
+abgesichert werden. `npm run build` entfernt ihn, in der hochgeladenen App gibt es ihn nicht.
+Nach Änderungen daran prüfen: `grep -r "Test: +1 Teil" dist/` muss leer sein.
+
 ## Regel 7: Serie nur für Chin-Ups
 
 Die Wochenserie zählt nur Chin-Up-Wochen. Yoga wird eingetragen und angezeigt, hat aber keine Serie.
