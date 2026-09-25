@@ -40,9 +40,11 @@ oder `prompt()` (dafür `src/Picker.tsx` und Inline-Meldungen).
 ## Regel 6: Belohnung im 3D-Miniatur-Look
 
 `src/gamification.ts` + `src/screens/Rewards.tsx`. Die Insel (`public/chamber.webp`) bekommt pro
-Chin-Up-Tag ein Teil (`CHAMBER_PIECES` = 42 = 14 Wochen × 3), Yoga läuft nur mit. Der heutige Tag zählt
-erst, wenn er fertig ist: nach dem Yoga-Speichern oder mit „Heute kein Yoga“ (Meta `dayClosed`); frühere
-Tage zählen immer. Danach poppt `ChamberReveal` (in `App.tsx`, über jedem Tab) mit dem neuen Teil auf (Meta `chamberSeen`). Die Yoga-Frage nach den Chin-Ups kommt aus den gespeicherten Daten, nicht aus einem Zwischenzustand. Was noch
+Chin-Up-Tag ein Teil (`CHAMBER_PIECES` = 42 = 14 Wochen × 3), Yoga läuft nur mit. Das Teil kommt, sobald
+die Chin-Ups gespeichert sind: `ChamberReveal` (in `App.tsx`, über jedem Tab) poppt als Karte über dem
+ganzen Bildschirm auf, das neue Teil fliegt ein und leuchtet zweimal (Meta `chamberSeen`). Danach leuchtet
+nichts mehr. Dann kommt die Yoga-Frage (Starten, Manuell eintragen, X oben links = heute nicht mehr
+fragen, Meta `yogaSkipped`); sie kommt aus den gespeicherten Daten, nicht aus einem Zwischenzustand. Was noch
 nicht erreicht ist, fehlt ganz; das Einhorn ist immer das letzte Teil. Die Teile stehen in
 `public/chamber-pieces.png` (Grauwert = Nummer × 3), erzeugt mit `python3 scripts/split-chamber.py`
 (dauert ~9 Min.). Das Kraft-Fläschchen besteht aus leerem Glas + reiner Flüssigkeitsebene

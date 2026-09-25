@@ -1,8 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useRef, useState } from 'react';
 
-import { db, setMeta } from '../db';
-import { META_DAY_CLOSED } from '../gamification';
+import { db } from '../db';
 import { fmtDate, fmtMinutes, freeHeightLabel, isoDate } from '../logic';
 import { SessionScreen } from './SessionScreen';
 
@@ -143,8 +142,6 @@ function DayView({
     const n = Number(minutes.replace(',', '.'));
     if (!Number.isFinite(n) || n <= 0) return;
     await db.yoga.add({ date, minutes: Math.round(n) });
-    // Yoga for today finishes the day, like on the start screen
-    if (date === isoDate(new Date())) await setMeta(META_DAY_CLOSED, date);
   };
 
   return (

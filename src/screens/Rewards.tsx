@@ -5,7 +5,6 @@ import { db, getMeta, setMeta } from '../db';
 import {
   CHAMBER_PIECES,
   META_CHAMBER_SEEN,
-  META_DAY_CLOSED,
   PIECE_STEP,
   chamberPieces,
   chamberState,
@@ -182,9 +181,7 @@ export function ChamberCard({ pieces }: { pieces: number }) {
 
   const caption = complete
     ? 'Das Bild ist vollständig.'
-    : count === 0
-      ? 'Jeder Trainingstag bringt ein Teil.'
-      : 'Das neueste Teil leuchtet.';
+    : 'Jeder Chin-Up-Tag bringt ein Teil.';
 
   return (
     <>
@@ -208,8 +205,7 @@ export function ChamberCard({ pieces }: { pieces: number }) {
               {count} von {CHAMBER_PIECES}
             </h1>
             <p className="muted">
-              Jeder Trainingstag bringt ein Teil. Es kommt dazu, sobald der Tag fertig ist: nach dem Yoga oder mit
-              „Heute kein Yoga“.{' '}
+              Jeder Chin-Up-Tag bringt ein Teil. Es kommt dazu, sobald du die Chin-Ups gespeichert hast.{' '}
               {complete
                 ? 'Du hast alles geschafft, das Bild ist vollständig.'
                 : `Noch ${days(left)}, dann siehst du das ganze Bild.`}
@@ -237,7 +233,6 @@ export function ChamberCard({ pieces }: { pieces: number }) {
 export interface Chamber {
   pieces: number; // earned so far
   seen: number | null; // pieces she has already watched appear, null on first start
-  dayClosed: string | null;
   today: string;
 }
 
@@ -256,16 +251,15 @@ export function useChamber(): Chamber | null {
 
   const data = useLiveQuery(async () => {
     const dates = (await db.sessions.toArray()).map((s) => s.date);
-    const dayClosed = (await getMeta<string>(META_DAY_CLOSED)) ?? null;
     const seen = (await getMeta<number>(META_CHAMBER_SEEN)) ?? null;
-    return { dates, dayClosed, seen };
+    return { dates, seen };
   }, []);
 
   if (!data) return null;
-  return { pieces: chamberPieces(data.dates, data.dayClosed, today), seen: data.seen, dayClosed: data.dayClosed, today };
+  return { pieces: chamberPieces(data.dates, today), seen: data.seen, today };
 }
 
-// Pops up over any screen as soon as a new piece is earned: the island with the new piece flying in
+// Pops up over any screen as soon as a new piece is earned: a card with the island, the new piece flies in
 export function ChamberReveal() {
   const chamber = useChamber();
   const pieces = chamber?.pieces ?? 0;
@@ -282,9 +276,9 @@ export function ChamberReveal() {
   const added = count - seen;
 
   return (
-    <div className="sheet reveal-sheet" role="dialog" aria-label="Neues Teil für deine Insel">
-      <div className="screen">
-        <p className="label">Tag geschafft</p>
+    <div className="reveal-backdrop">
+      <div className="reveal-card" role="dialog" aria-modal="true" aria-label="Neues Teil für deine Insel">
+        <p className="label">Chin-Ups geschafft</p>
         <h1 className="title">
           {complete
             ? 'Deine Insel ist fertig!'
@@ -299,7 +293,7 @@ export function ChamberReveal() {
         <div className="section-sm">
           <ChamberPicture count={count} newFrom={seen} reveal />
         </div>
-        <button className="btn block section" onClick={() => setMeta(META_CHAMBER_SEEN, pieces)}>
+        <button className="btn block section-sm" onClick={() => setMeta(META_CHAMBER_SEEN, pieces)}>
           Weiter
         </button>
       </div>

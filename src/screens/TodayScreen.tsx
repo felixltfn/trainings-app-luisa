@@ -2,7 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useState } from 'react';
 
 import { DEFAULT_BODYWEIGHT, db, getMeta, setMeta } from '../db';
-import { META_DAY_CLOSED, potionLevel } from '../gamification';
+import { potionLevel } from '../gamification';
 import {
   BIG_GOAL_DATE,
   WEEKLY_GOAL,
@@ -20,6 +20,9 @@ import { loadStart, minutesSince, saveStart } from '../yogaTimer';
 import { ChamberCard, PotionCard, StreakBanner, useChamber } from './Rewards';
 import { SessionScreen } from './SessionScreen';
 
+// The day she closed the yoga question with the X – it stays away until tomorrow
+const META_YOGA_SKIPPED = 'yogaSkipped';
+
 export function TodayScreen() {
   const [entering, setEntering] = useState(false);
   const [startedAt, setStartedAt] = useState<number | null>(loadStart);
@@ -34,7 +37,8 @@ export function TodayScreen() {
     const sessions = await db.sessions.toArray();
     const yoga = await db.yoga.toArray();
     const bodyweight = (await getMeta<number>('bodyweight')) ?? DEFAULT_BODYWEIGHT;
-    return { bands, sessions, yoga, bodyweight };
+    const yogaSkipped = (await getMeta<string>(META_YOGA_SKIPPED)) ?? null;
+    return { bands, sessions, yoga, bodyweight, yogaSkipped };
   }, []);
   const chamber = useChamber();
 
@@ -50,21 +54,14 @@ export function TodayScreen() {
   }, []);
 
   if (!data || !chamber) return <div className="screen" />;
-  const { bands, sessions, yoga, bodyweight } = data;
+  const { bands, sessions, yoga, bodyweight, yogaSkipped } = data;
   const today = chamber.today;
-
-  // The day is finished after yoga or "Heute kein Yoga" – only then the island gets its piece
-  const closeDay = () => setMeta(META_DAY_CLOSED, isoDate(new Date()));
 
   if (entering) {
     return (
       <SessionScreen
         onClose={() => setEntering(false)}
-        onSaved={() => {
-          setEntering(false);
-          // Yoga already done today: the chin-ups finish the day
-          if (yoga.some((y) => y.date === isoDate(new Date()))) void closeDay();
-        }}
+        onSaved={() => setEntering(false)}
       />
     );
   }
@@ -89,34 +86,73 @@ export function TodayScreen() {
 
   const saveYoga = async (minutes: number, date: string) => {
     await db.yoga.add({ date, minutes: Math.max(1, Math.round(minutes)) });
-    if (date === isoDate(new Date())) await closeDay();
     setStartedAt(null);
     saveStart(null);
     setStopping(null);
     setManual(false);
   };
 
-  // Chin-ups done, day not finished yet: nothing but the way into yoga. Comes from the saved data,
-  // so it is still there after switching tabs or closing the app.
+  const manualForm = (
+    <div className="section-sm">
+      <div className="pair">
+        <label className="field">
+          <span>Datum</span>
+          <input
+            className="input"
+            type="date"
+            value={manualDate}
+            onChange={(e) => setManualDate(e.target.value)}
+          />
+        </label>
+        <label className="field">
+          <span>Minuten</span>
+          <input
+            className="num-input"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            value={manualMinutes}
+            onChange={(e) => setManualMinutes(e.target.value)}
+            onFocus={(e) => e.target.select()}
+          />
+        </label>
+      </div>
+      <button
+        className="btn block section-sm"
+        onClick={() => saveYoga(Number(manualMinutes) || 0, manualDate)}
+      >
+        Eintragen
+      </button>
+    </div>
+  );
+
+  // Chin-ups done, no yoga yet: the way into yoga. Comes from the saved data, so it is still there
+  // after switching tabs or closing the app; the X puts it away for today.
   const chinToday = sessions.some((s) => s.date === today);
-  if (chinToday && chamber.dayClosed !== today && !startedAt && stopping === null) {
+  const yogaToday = yoga.some((y) => y.date === today);
+  if (chinToday && !yogaToday && yogaSkipped !== today && !startedAt && stopping === null) {
     return (
       <div className="screen">
-        <p className="label">Chin-Ups gespeichert</p>
+        <button
+          className="icon-btn close-btn"
+          aria-label="Schließen, heute ohne Yoga"
+          onClick={() => setMeta(META_YOGA_SKIPPED, today)}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 6l12 12M18 6 6 18" />
+          </svg>
+        </button>
+        <p className="label section-sm">Chin-Ups gespeichert</p>
         <h1 className="title">Weiter mit Yoga</h1>
         <p className="muted">Starte die Zeit, wenn du loslegst. Sie läuft weiter, auch wenn du das Handy weglegst.</p>
-        <button
-          className="btn block section"
-          onClick={startYoga}
-        >
-          Yoga starten
-        </button>
-        <button
-          className="btn secondary block section-sm"
-          onClick={closeDay}
-        >
-          Heute kein Yoga
-        </button>
+        <div className="stack section">
+          <button className="btn block" onClick={startYoga}>
+            Yoga starten
+          </button>
+          <button className="btn secondary block" onClick={() => setManual(!manual)}>
+            {manual ? 'Abbrechen' : 'Manuell eintragen'}
+          </button>
+        </div>
+        {manual && manualForm}
       </div>
     );
   }
@@ -285,38 +321,7 @@ export function TodayScreen() {
           </div>
         )}
 
-        {manual && !startedAt && (
-          <div className="section-sm">
-            <div className="pair">
-              <label className="field">
-                <span>Datum</span>
-                <input
-                  className="input"
-                  type="date"
-                  value={manualDate}
-                  onChange={(e) => setManualDate(e.target.value)}
-                />
-              </label>
-              <label className="field">
-                <span>Minuten</span>
-                <input
-                  className="num-input"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={manualMinutes}
-                  onChange={(e) => setManualMinutes(e.target.value)}
-                  onFocus={(e) => e.target.select()}
-                />
-              </label>
-            </div>
-            <button
-              className="btn block section-sm"
-              onClick={() => saveYoga(Number(manualMinutes) || 0, manualDate)}
-            >
-              Eintragen
-            </button>
-          </div>
-        )}
+        {manual && !startedAt && manualForm}
 
         {yoga.length > 0 && (
           <p className="small muted section-sm">

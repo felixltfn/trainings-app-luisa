@@ -1,15 +1,14 @@
 import type { Band, Session } from './db';
 import { sessionE1rm } from './stats';
 
-// ---------- The island: every finished chin-up day adds one piece ----------
+// ---------- The island: every chin-up day adds one piece ----------
 
 // 14 weeks with 3 chin-up days each – the whole picture by the big goal. The unicorn is the last piece.
 // public/chamber-pieces.png holds, per pixel, the day that brings it (see scripts/split-chamber.py).
 export const CHAMBER_PIECES = 42;
 export const PIECE_STEP = 3; // piece n is stored as grey value n * 3, robust against rounding
 
-// Meta keys: the day that was finished (after yoga or "Heute kein Yoga"), and the pieces she has already seen appear
-export const META_DAY_CLOSED = 'dayClosed';
+// Meta key: the pieces she has already seen appear
 export const META_CHAMBER_SEEN = 'chamberSeen';
 
 export interface ChamberState {
@@ -22,10 +21,9 @@ export function chamberState(pieces: number): ChamberState {
   return { count, complete: count === CHAMBER_PIECES };
 }
 
-// Days with chin-ups. Today only counts once the day is finished; earlier days always count.
-export function chamberPieces(chinDates: string[], dayClosed: string | null, today: string): number {
-  const days = new Set(chinDates.filter((d) => d < today || (d === today && dayClosed === today)));
-  return days.size;
+// Days with chin-ups – the piece comes as soon as the session is saved
+export function chamberPieces(chinDates: string[], today: string): number {
+  return new Set(chinDates.filter((d) => d <= today)).size;
 }
 
 // ---------- The strength flask: estimated strength against her bodyweight ----------
